@@ -20,6 +20,8 @@ template<class T> class SubProcessor;
 template<class T> class ReplicatedMC;
 template<class T> class ReplicatedInput;
 template<class T> class Preprocessing;
+template<class T> class SecureShuffle;
+template<class T> class Rep3Shuffler;
 class Instruction;
 
 /**
@@ -30,9 +32,9 @@ class ReplicatedBase
 public:
     Player& P;
     #ifdef OUR_TRUNC
-    array<PairwisePRNG, 2> shared_prngs;
+    mutable array<PairwisePRNG, 2> shared_prngs;
     #else
-    array<PRNG, 2> shared_prngs;
+    mutable array<PRNG, 2> shared_prngs;
     #endif
 
     ReplicatedBase(Player& P);
@@ -42,7 +44,7 @@ public:
     ReplicatedBase(Player& P, array<PRNG, 2>& prngs);
     #endif
 
-    ReplicatedBase branch();
+    ReplicatedBase branch() const;
 
     int get_n_relevant_players() { return P.num_players() - 1; }
 };
@@ -66,6 +68,8 @@ protected:
 public:
     typedef T share_type;
 
+    typedef SecureShuffle<T> Shuffler;
+
     int counter;
 
     ProtocolBase();
@@ -88,6 +92,7 @@ public:
     virtual void init_mul() = 0;
     /// Schedule multiplication of operand pair
     virtual void prepare_mul(const T& x, const T& y, int n = -1) = 0;
+    virtual void prepare_mult(const T& x, const T& y, int n, bool repeat);
     /// Run multiplication protocol
     virtual void exchange() = 0;
     /// Get next multiplication result
@@ -134,6 +139,8 @@ public:
     { throw runtime_error("CISC instructions not implemented"); }
 
     virtual vector<int> get_relevant_players();
+
+    virtual int get_buffer_size() { return 0; }
 };
 
 /**
@@ -153,6 +160,8 @@ class Replicated : public ReplicatedBase, public ProtocolBase<T>
 
 public:
     static const bool uses_triples = false;
+
+    typedef Rep3Shuffler<T> Shuffler;
 
     Replicated(Player& P);
     Replicated(const ReplicatedBase& other);

@@ -63,6 +63,7 @@ public:
     static void ands(Processor<U>& processor, const vector<int>& args)
     { and_(processor, args, false); }
     static void and_(Processor<U>& processor, const vector<int>& args, bool repeat);
+    static void andrsvec(Processor<U>& processor, const vector<int>& args);
     static void xors(Processor<U>& processor, const vector<int>& args);
     static void inputb(Processor<U>& processor, const vector<int>& args)
     { inputb(processor, processor, args); }
@@ -82,6 +83,9 @@ public:
     { processor.andm(instruction); }
 
     static BitVec get_mask(int n) { return n >= 64 ? -1 : ((1L << n) - 1); }
+
+    static void run_tapes(const vector<int>& args)
+    { Thread<U>::s().master.machine.run_tapes(args); }
 
     void check_length(int n, const Integer& x);
 
@@ -123,6 +127,7 @@ public:
     static const bool variable_players = false;
     static const bool needs_ot = false;
     static const bool has_mac = false;
+    static const bool randoms_for_opens = false;
 
     static string type_string() { return "replicated secret"; }
     static string phase_name() { return "Replicated computation"; }
@@ -159,7 +164,7 @@ public:
     void bitdec(Memory<U>& S, const vector<int>& regs) const;
 
     void xor_(int n, const This& x, const This& y)
-    { *this = x ^ y; (void)n; }
+    { *this = (x ^ y).mask(n); }
 
     This operator&(const Clear& other)
     { return super::operator&(BitVec(other)); }

@@ -1,4 +1,4 @@
-Compilation process
+Compilation Process
 -------------------
 
 The easiest way of using MP-SPDZ is using ``compile.py`` as
@@ -38,7 +38,11 @@ The following options influence the computation domain:
    Specify a concrete prime modulus for computation. This can be used
    together with :option:`-F`, in which case *integer length* has to
    be at most the prime length minus two. The security implications of
-   overflows in the secrets do not go beyond incorrect results.
+   overflows in the secrets do not go beyond incorrect results. You
+   can use prime order domains without specifying this option.
+   Using this option involves algorithms for non-linear computation
+   which are generally more expensive but allow for integer lengths
+   that are close to the bit length of the prime.
 
 .. cmdoption:: -R <ring size>
 	       --ring=<ring size>
@@ -53,6 +57,11 @@ The following options influence the computation domain:
 	       --binary=<integer length>
 
    Compile for binary computation using *integer length* as default.
+
+.. cmdoption:: -G
+	       --garbled-circuit
+
+   Compile for garbled circuits (does not replace :option:`-B`).
 
 For arithmetic computation (:option:`-F`, :option:`-P`, and
 :option:`-R`) you can set the bit

@@ -64,7 +64,6 @@ RealProgramParty<T>::RealProgramParty(int argc, const char** argv) :
 	    online_opts = {opt, argc, argv, 1000};
 	else
 	    online_opts = {opt, argc, argv};
-	assert(not online_opts.interactive);
 
 	online_opts.finalize(opt, argc, argv);
 	this->load(online_opts.progname);
@@ -155,7 +154,6 @@ RealProgramParty<T>::RealProgramParty(int argc, const char** argv) :
 	while (next != GC::DONE_BREAK);
 
 	MC->Check(*P);
-	data_sent = P->total_comm().sent;
 
 	if (online_opts.verbose)
 	    P->total_comm().print();
@@ -217,7 +215,7 @@ RealProgramParty<T>::~RealProgramParty()
 	delete prep;
 	delete garble_inputter;
 	delete garble_protocol;
-	cout << "Data sent = " << data_sent * 1e-6 << " MB" << endl;
+	garble_machine.print_comm(*this->P, this->P->total_comm());
 	T::MAC_Check::teardown();
 }
 

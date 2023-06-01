@@ -154,6 +154,7 @@ public:
     static void xors(Processor<NoShare>&, const vector<int>&) { fail(); }
     static void ands(Processor<NoShare>&, const vector<int>&) { fail(); }
     static void andrs(Processor<NoShare>&, const vector<int>&) { fail(); }
+    static void andrsvec(Processor<NoShare>&, const vector<int>&) { fail(); }
 
     static void trans(Processor<NoShare>&, Integer, const vector<int>&) { fail(); }
 
@@ -181,6 +182,8 @@ public:
     NoShare operator+(const NoShare&) const { fail(); return {}; }
     NoShare operator-(const NoShare&) const { fail(); return {}; }
     NoShare operator*(const NoValue&) const { fail(); return {}; }
+
+    NoShare operator^(const NoShare&) const { fail(); return {}; }
 
     NoShare operator&(int) const { fail(); return {}; }
     NoShare operator>>(int) const { fail(); return {}; }

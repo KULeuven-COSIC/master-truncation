@@ -3,6 +3,9 @@
  *
  */
 
+#ifndef PROTOCOLS_MALICIOUSREPPREP_HPP_
+#define PROTOCOLS_MALICIOUSREPPREP_HPP_
+
 #include "MaliciousRepPrep.h"
 #include "Tools/Subroutines.h"
 #include "Processor/OnlineOptions.h"
@@ -205,7 +208,7 @@ void MaliciousBitOnlyRepPrep<T>::buffer_bits()
         assert(MC.open(f, P) * MC.open(f, P) == MC.open(h, P));
 #endif
     }
-    auto t = Create_Random<typename T::clear>(P);
+    auto t = Create_Random<typename T::open_type>(P);
     for (int i = 0; i < buffer_size; i++)
     {
         T& a = bits[i];
@@ -213,7 +216,7 @@ void MaliciousBitOnlyRepPrep<T>::buffer_bits()
         masked.push_back(t * a - f);
     }
     MC.POpen(opened, masked, P);
-    typename T::clear t2 = t * t;
+    typename T::open_type t2 = t * t;
     for (int i = 0; i < buffer_size; i++)
     {
         T& a = bits[i];
@@ -232,3 +235,5 @@ void MaliciousRepPrep<T>::buffer_inputs(int player)
     assert(proc);
     this->buffer_inputs_as_usual(player, proc);
 }
+
+#endif

@@ -75,7 +75,15 @@ Compiler.ml module
    :no-undoc-members:
    :exclude-members: Tensor
    :show-inheritance:
+   :inherited-members:
 .. autofunction:: approx_sigmoid
+
+Compiler.decision_tree module
+-----------------------------
+
+.. automodule:: Compiler.decision_tree
+   :members:
+   :no-undoc-members:
 
 Compiler.circuit module
 -----------------------
@@ -112,3 +120,32 @@ Compiler.oram module
 		     TrivialORAMIndexStructure, ValueTuple, demux,
 		     get_log_value_size, get_parallel, get_value_size,
 		     gf2nBlock, intBlock
+
+
+Compiler.sqrt_oram module
+-------------------------
+
+.. automodule:: Compiler.sqrt_oram
+   :members:
+   :no-undoc-members:
+   :exclude-members: LinearPositionMap, PositionMap, RecursivePositionMap,
+		     refresh, shuffle_the_shuffle
+
+
+Compiler.path_oblivious_heap module
+-----------------------------------
+
+.. automodule:: Compiler.path_oblivious_heap
+   :members:
+   :no-undoc-members:
+   :inherited-members:
+   :exclude-members: AbstractMinPriorityQueue, BasicMinTree, CircuitMinTree,
+		     EmptyIndexStructure, POHVariant, PathMinTree, dprint,
+		     dprint_ln, dprint_ln_if, dprint_str, indent, outdent,
+
+
+Compiler.sorting module
+-----------------------
+.. automodule:: Compiler.sorting
+   :members:
+   :no-undoc-members:

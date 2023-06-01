@@ -11,9 +11,10 @@ elif test `uname` = Darwin; then
 	    echo Aborting
 	    exit 1
 	else
-	    /usr/bin/env ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+	    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 	fi
     fi
+    make mac-setup
     make tldr
 else
     echo OS unknown
@@ -24,6 +25,11 @@ if test "$flags"; then
     if $flags | grep -q avx2; then
 	cpu=avx2
     else
+	if test `uname -m` != x86_64; then
+	    echo Binaries are not available for `uname -m`
+	    echo Use the source distribution: https://github.com/data61/MP-SPDZ/#tldr-source-distribution
+	    exit 1
+	fi
 	cpu=amd64
     fi
 

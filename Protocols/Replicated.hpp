@@ -43,7 +43,7 @@ inline ReplicatedBase::ReplicatedBase(Player& P) : P(P)
 {
     assert(P.num_players() == 3);
 	if (not P.is_encrypted())
-		insecure("unencrypted communication");
+		insecure("unencrypted communication", false);
 
   #ifdef OUR_TRUNC
   if (P.my_num() == 0) {
@@ -77,7 +77,7 @@ inline ReplicatedBase::ReplicatedBase(Player& P, array<PRNG, 2>& prngs) :
         shared_prngs[i].SetSeed(prngs[i]);
 }
 
-inline ReplicatedBase ReplicatedBase::branch()
+inline ReplicatedBase ReplicatedBase::branch() const
 {
     return {P, shared_prngs};
 }
@@ -138,6 +138,13 @@ T ProtocolBase<T>::mul(const T& x, const T& y)
     prepare_mul(x, y);
     exchange();
     return finalize_mul();
+}
+
+template<class T>
+void ProtocolBase<T>::prepare_mult(const T& x, const T& y, int n,
+		bool)
+{
+    prepare_mul(x, y, n);
 }
 
 template<class T>
@@ -212,6 +219,7 @@ void Replicated<T>::prepare_reshare(const typename T::clear& share,
 template<class T>
 void Replicated<T>::exchange()
 {
+    os[0].append(0);
     if (os[0].get_length() > 0)
         P.pass_around(os[0], os[1], 1);
     this->rounds++;
@@ -220,6 +228,7 @@ void Replicated<T>::exchange()
 template<class T>
 void Replicated<T>::start_exchange()
 {
+    os[0].append(0);
     P.send_relative(1, os[0]);
     this->rounds++;
 }
@@ -621,7 +630,18 @@ void Replicated<T>::trunc_pr(const vector<int>& regs, int size, U& proc,
     auto& S = proc.get_S();
 
     octetStream cs;
-    ReplicatedInput<T> input(P);
+    ReplicatedInput<T> input(0, *this);
+
+    // use https://eprint.iacr.org/2019/131
+    bool have_small_gap = false;
+    // use https://eprint.iacr.org/2018/403
+    bool have_big_gap = false;
+
+    for (auto info : infos)
+        if (info.small_gap())
+            have_small_gap = true;
+        else
+            have_big_gap = true;
 
     if (generate)
     {
@@ -629,15 +649,27 @@ void Replicated<T>::trunc_pr(const vector<int>& regs, int size, U& proc,
         for (auto info : infos)
             for (int i = 0; i < size; i++)
             {
-                auto r = G.get<value_type>();
-                input.add_mine(info.upper(r));
+                auto& x = S[info.source_base + i];
                 if (info.small_gap())
+                {
+                    auto r = G.get<value_type>();
+                    input.add_mine(info.upper(r));
                     input.add_mine(info.msb(r));
-                (r + S[info.source_base + i][0]).pack(cs);
+                    (r + x[0]).pack(cs);
+                }
+                else
+                {
+                    auto& y = S[info.dest_base + i];
+                    auto r = this->shared_prngs[0].template get<value_type>();
+                    y[1] = -value_type(-value_type(x.sum()) >> info.m) - r;
+                    y[1].pack(cs);
+                    y[0] = r;
+                }
             }
+
         P.send_to(comp_player, cs);
     }
-    else
+    else if (have_small_gap)
         input.add_other(gen_player);
 
     if (compute)
@@ -646,42 +678,67 @@ void Replicated<T>::trunc_pr(const vector<int>& regs, int size, U& proc,
         for (auto info : infos)
             for (int i = 0; i < size; i++)
             {
-                auto c = cs.get<value_type>() + S[info.source_base + i].sum();
-                input.add_mine(info.upper(c));
+                auto& x = S[info.source_base + i];
                 if (info.small_gap())
+                {
+                    auto c = cs.get<value_type>() + x.sum();
+                    input.add_mine(info.upper(c));
                     input.add_mine(info.msb(c));
+                }
+                else
+                {
+                    auto& y = S[info.dest_base + i];
+                    y[0] = cs.get<value_type>();
+                    y[1] = x[1] >> info.m;
+                }
             }
     }
 
-    input.add_other(comp_player);
-    input.exchange();
-    init_mul();
+    if (have_big_gap and not (compute or generate))
+    {
+        for (auto info : infos)
+            if (info.big_gap())
+                for (int i = 0; i < size; i++)
+                {
+                    auto& x = S[info.source_base + i];
+                    auto& y = S[info.dest_base + i];
+                    y[0] = x[0] >> info.m;
+                    y[1] = this->shared_prngs[1].template get<value_type>();
+                }
+    }
 
-    for (auto info : infos)
-        for (int i = 0; i < size; i++)
-        {
-            this->trunc_pr_counter++;
-            auto c_prime = input.finalize(comp_player);
-            auto r_prime = input.finalize(gen_player);
-            S[info.dest_base + i] = c_prime - r_prime;
+    if (have_small_gap)
+    {
+        input.add_other(comp_player);
+        input.exchange();
+        init_mul();
 
-            if (info.small_gap())
+        for (auto info : infos)
+            for (int i = 0; i < size; i++)
             {
-                auto c_dprime = input.finalize(comp_player);
-                auto r_msb = input.finalize(gen_player);
-                S[info.dest_base + i] += ((r_msb + c_dprime)
-                        << (info.k - info.m));
-                prepare_mul(r_msb, c_dprime);
+                if (info.small_gap())
+                {
+                    this->trunc_pr_counter++;
+                    auto c_prime = input.finalize(comp_player);
+                    auto r_prime = input.finalize(gen_player);
+                    S[info.dest_base + i] = c_prime - r_prime;
+
+                    auto c_dprime = input.finalize(comp_player);
+                    auto r_msb = input.finalize(gen_player);
+                    S[info.dest_base + i] += ((r_msb + c_dprime)
+                            << (info.k - info.m));
+                    prepare_mul(r_msb, c_dprime);
+                }
             }
-        }
 
-    exchange();
+        exchange();
 
-    for (auto info : infos)
-        for (int i = 0; i < size; i++)
-            if (info.small_gap())
-                S[info.dest_base + i] -= finalize_mul()
-                        << (info.k - info.m + 1);
+        for (auto info : infos)
+            for (int i = 0; i < size; i++)
+                if (info.small_gap())
+                    S[info.dest_base + i] -= finalize_mul()
+                            << (info.k - info.m + 1);
+    }
 #endif
 }
 

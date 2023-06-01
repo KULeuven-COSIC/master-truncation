@@ -15,20 +15,39 @@
 template<class T>
 typename T::open_type::Scalar Shamir<T>::get_rec_factor(int i, int n)
 {
-    return get_rec_factor(i, n, 0, n);
+    vector<int> points(n);
+    for (int j = 0; j < n; j++)
+        points[j] = j;
+    return get_rec_factor(i, points);
 }
 
 template<class T>
-typename T::open_type::Scalar Shamir<T>::get_rec_factor(int i, int n_total,
-        int start, int n_points)
+typename T::open_type::Scalar Shamir<T>::get_rec_factor(int i,
+        const vector<int>& points, int target)
 {
+    assert(find(points.begin(), points.end(), i) != points.end());
     U res = 1;
-    for (int j = 0; j < n_points; j++)
+    for (auto& other : points)
     {
-        int other = positive_modulo(start + j, n_total);
         if (i != other)
-            res *= U(other + 1) / (U(other + 1) - U(i + 1));
+        {
+            res *= (U(other + 1) - U(target + 1)) / (U(other + 1) - U(i + 1));
+#ifdef DEBUG_SHAMIR
+            cout << "res=" << res << " other+1=" << (other + 1) << " target="
+                    << target << " i+1=" << (i + 1) << endl;
+#endif
+        }
     }
+    return res;
+}
+
+template<class T>
+vector<typename T::open_type::Scalar> Shamir<T>::get_rec_factors(
+        const vector<int>& points, int target)
+{
+    vector<U> res;
+    for (auto& point : points)
+        res.push_back(get_rec_factor(point, points, target));
     return res;
 }
 
@@ -43,6 +62,7 @@ Shamir<T>::Shamir(Player& P, int t) :
     else
         threshold = ShamirMachine::s().threshold;
     n_mul_players = 2 * threshold + 1;
+    resharing = new ShamirInput<T>(0, P);
 }
 
 template<class T>
@@ -69,11 +89,6 @@ int Shamir<T>::get_n_relevant_players()
 template<class T>
 void Shamir<T>::reset()
 {
-    if (resharing == 0)
-    {
-        resharing = new ShamirInput<T>(0, P);
-    }
-
     for (int i = 0; i < P.num_players(); i++)
         resharing->reset(i);
 

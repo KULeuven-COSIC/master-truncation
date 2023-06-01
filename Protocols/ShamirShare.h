@@ -9,6 +9,7 @@
 #include "Protocols/Shamir.h"
 #include "Protocols/ShamirInput.h"
 #include "Machines/ShamirMachine.h"
+#include "GC/NoShare.h"
 #include "ShareInterface.h"
 
 template<class T> class ReplicatedPrep;
@@ -49,7 +50,7 @@ public:
     const static bool dishonest_majority = false;
     const static bool variable_players = true;
     const static bool expensive = false;
-    const static bool malicious = true;
+    const static bool malicious = false;
 
     static string type_short()
     {

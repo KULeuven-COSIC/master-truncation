@@ -70,6 +70,7 @@ enum
     PLAYERID = 0xE4,
     USE_EDABIT = 0xE5,
     USE_MATMUL = 0x1F,
+    ACTIVE = 0xE9,
     // Addition
     ADDC = 0x20,
     ADDS = 0x21,
@@ -84,6 +85,7 @@ enum
     SUBSI = 0x2A,
     SUBCFI = 0x2B,
     SUBSFI = 0x2C,
+    PREFIXSUMS = 0x2D,
     // Multiplication/division/other arithmetic
     MULC = 0x30,
     MULM = 0x31,
@@ -210,6 +212,7 @@ enum
     CONDPRINTPLAIN = 0xE1,
     INTOUTPUT = 0xE6,
     FLOATOUTPUT = 0xE7,
+    FIXINPUT = 0xE8,
 
     // GF(2^n) versions
     

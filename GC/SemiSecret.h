@@ -19,6 +19,7 @@ namespace GC
 
 class SemiPrep;
 class DealerPrep;
+class Semi;
 
 template<class T, class V>
 class SemiSecretBase : public V, public ShareSecret<T>
@@ -32,6 +33,8 @@ public:
 
     typedef T part_type;
     typedef T small_type;
+
+    static const bool is_real = true;
 
     static const int default_length = sizeof(BitVec) * 8;
 
@@ -88,8 +91,12 @@ public:
     typedef MC MAC_Check;
     typedef SemiInput<This> Input;
     typedef SemiPrep LivePrep;
+    typedef Semi Protocol;
 
     static MC* new_mc(typename SemiShare<BitVec>::mac_key_type);
+
+    static void andrsvec(Processor<SemiSecret>& processor,
+            const vector<int>& args);
 
     SemiSecret()
     {

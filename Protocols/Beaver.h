@@ -27,6 +27,7 @@ protected:
     vector<T> shares;
     vector<typename T::open_type> opened;
     vector<array<T, 3>> triples;
+    vector<int> lengths;
     typename vector<typename T::open_type>::iterator it;
     typename vector<array<T, 3>>::iterator triple;
     Preprocessing<T>* prep;
@@ -54,6 +55,8 @@ public:
     void stop_exchange();
 
     int get_n_relevant_players() { return 1 + T::threshold(P.num_players()); }
+
+    int get_buffer_size() { return triples.size(); }
 };
 
 #endif /* PROTOCOLS_BEAVER_H_ */

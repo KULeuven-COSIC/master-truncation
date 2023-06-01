@@ -289,7 +289,7 @@ def BitDecRingRaw(a, k, m):
 def BitDecRing(a, k, m):
     bits = BitDecRingRaw(a, k, m)
     # reversing to reduce number of rounds
-    return [types.sint.conv(bit) for bit in reversed(bits)][::-1]
+    return [types.sintbit.conv(bit) for bit in reversed(bits)][::-1]
 
 def BitDecFieldRaw(a, k, m, kappa, bits_to_compute=None):
     instructions_base.set_global_vector_size(a.size)
@@ -306,11 +306,12 @@ def BitDecFieldRaw(a, k, m, kappa, bits_to_compute=None):
 
 def BitDecField(a, k, m, kappa, bits_to_compute=None):
     res = BitDecFieldRaw(a, k, m, kappa, bits_to_compute)
-    return [types.sint.conv(bit) for bit in res]
+    return [types.sintbit.conv(bit) for bit in res]
 
 
 @instructions_base.ret_cisc
 def Pow2(a, l, kappa):
+    comparison.program.curr_tape.require_bit_length(l - 1)
     m = int(ceil(log(l, 2)))
     t = BitDec(a, m, m, kappa)
     return Pow2_from_bits(t)
@@ -318,7 +319,7 @@ def Pow2(a, l, kappa):
 def Pow2_from_bits(bits):
     m = len(bits)
     t = list(bits)
-    pow2k = [types.cint() for i in range(m)]
+    pow2k = [None for i in range(m)]
     for i in range(m):
         pow2k[i] = two_power(2**i)
         t[i] = t[i]*pow2k[i] + 1 - t[i]
@@ -640,7 +641,7 @@ def BitDecFull(a, n_bits=None, maybe_mixed=False):
     n_bits = n_bits or bit_length
     assert n_bits <= bit_length
     logp = int(round(math.log(p, 2)))
-    if abs(p - 2 ** logp) / p < 2 ** -get_program().security:
+    if get_program().rabbit_gap():
         # inspired by Rabbit (https://eprint.iacr.org/2021/119)
         # no need for exact randomness generation
         # if modulo a power of two is close enough

@@ -68,6 +68,7 @@ void ThreadMaster<T>::run()
     P = new PlainPlayer(N, "main");
 
     machine.load_schedule(progname);
+    machine.reset(machine.progs[0], memory);
 
     for (int i = 0; i < machine.nthreads; i++)
         threads.push_back(new_thread(i));
@@ -96,14 +97,13 @@ void ThreadMaster<T>::run()
         delete thread;
     }
 
-    exe_stats.print();
+    if (not exe_stats.empty())
+        exe_stats.print();
     stats.print();
 
     machine.print_timers();
 
-    cerr << "Data sent = " << stats.sent * 1e-6 << " MB" << endl;
-
-    machine.print_global_comm(*P, stats);
+    machine.print_comm(*P, stats);
 
     delete P;
 }
