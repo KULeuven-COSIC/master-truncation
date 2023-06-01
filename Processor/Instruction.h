@@ -183,6 +183,8 @@ enum
     PRINTINT = 0x9F,
     INCINT = 0xD1,
     SHUFFLE = 0xD2,
+    // ML
+    RELU = 0xD3,
     // Conversion
     CONVINT = 0xC0,
     CONVMODP = 0xC1,

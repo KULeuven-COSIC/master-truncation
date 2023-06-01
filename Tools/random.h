@@ -188,6 +188,20 @@ public:
   }
 };
 
+class PairwisePRNG : public PRNG
+{
+public:
+  /// Construction without initialization. Usage without initilization will fail.
+  PairwisePRNG() : PRNG() {}
+  PairwisePRNG(const Player& P,int other_player)
+  {
+    SeedPairwise(P, other_player);
+  }
+
+  void SeedPairwise(const Player& P, int other_player);
+};
+
+
 template<class T>
 class ElementPRNG : public PRNG
 {

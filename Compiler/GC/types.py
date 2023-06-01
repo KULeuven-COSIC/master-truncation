@@ -643,6 +643,9 @@ class sbits(bits):
     @staticmethod
     def ripple_carry_adder(*args, **kwargs):
         return sbitint.ripple_carry_adder(*args, **kwargs)
+    @staticmethod
+    def ripple_borrow_subtract(*args, **kwargs):
+        return sbitint.ripple_borrow_subtract(*args, **kwargs)
 
 class sbitvec(_vec, _bit):
     """ Vector of registers of secret bits, effectively a matrix of secret bits.

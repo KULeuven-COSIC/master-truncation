@@ -18,11 +18,12 @@ template <class T, int L>
 class FixedVec
 {
     typedef FixedVec This;
-    array<T, L> v;
+    
 
 public:
     typedef T value_type;
     typedef FixedVec Scalar;
+    array<T, L> v;
 
     static const int vector_length = L;
 
@@ -165,6 +166,13 @@ public:
     bool is_one()
     {
         return equal(1);
+    }
+
+    bool operator==(const FixedVec<T, L>& x) {
+        for (int i = 0; i < L; i++)
+            if (v[i] != x[i])
+                return false;
+        return true;
     }
 
     bool operator!=(const FixedVec<T, L>& other) const

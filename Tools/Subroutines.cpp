@@ -29,7 +29,17 @@ void Commit(vector< vector<octetStream> >& Comm_data,
      }
 }
 
-
+void Pairwise_Commit(vector< vector<octetStream> >& Comm_data,
+            vector<octetStream>& Open_data,
+            const vector< vector<octetStream> >& data,const Player& P,int num_runs)
+{
+  int my_number=P.my_num();
+  for (int i=0; i<num_runs; i++)
+     { Comm_data[i].resize(P.num_players());
+       Commit(Comm_data[i][my_number],Open_data[i],data[i][my_number],my_number);
+       P.Broadcast_Receive(Comm_data[i]);
+     }
+}
 
 
 // Special version for octetStreams
@@ -121,6 +131,31 @@ int Open_Challenge(vector<unsigned int>& e,vector<octetStream>& Open_e,
   challenge = challenge % num_runs;
 
   return challenge;
+}
+
+void Create_Pairwise_Seed(octet* seed,const Player& P,int len, int other_player)
+{
+  PRNG G;
+  G.ReSeed();
+  octetStream my_seed, other_seed, my_comm, my_open, other_comm, other_open;
+  
+  G.get_octetStream(my_seed,len);
+  Commit(my_comm, my_open, my_seed, P.my_num());
+  P.send_to(other_player, my_comm);
+  P.receive_player(other_player, other_comm);
+  
+  P.send_to(other_player, my_open);
+  P.receive_player(other_player, other_open);
+
+  P.send_to(other_player, my_seed);
+  P.receive_player(other_player, other_seed);
+
+  if (!Open(other_seed,other_comm,other_open,other_player))
+        { throw invalid_commitment(); }
+  
+  memset(seed,0,len*sizeof(octet));
+  for (int j=0; j<len; j++)
+      { seed[j]=my_seed.get_data()[j] ^ other_seed.get_data()[j]; }
 }
 
 

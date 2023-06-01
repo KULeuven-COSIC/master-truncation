@@ -144,6 +144,14 @@ def relu(x):
     """ ReLU function (maximum of input and zero). """
     return (0 < x).if_else(x, 0)
 
+def aelu_prime(x):
+    """ AeLU derivative. """
+    return (0 <= x)
+
+def aelu(x):
+    """ AeLU function (maximum of input and zero). """
+    return (0 < x+1).if_else(x+1, 0) -1
+
 def argmax(x):
     """ Compute index of maximum element.
 
@@ -707,6 +715,8 @@ class Dense(DenseBase):
             self.activation_layer = None
         elif activation == 'relu':
             self.activation_layer = Relu([N, d, d_out])
+        elif activation == 'aelu':
+            self.activation_layer = Aelu([N, d, d_out])
         elif activation == 'square':
             self.activation_layer = Square([N, d, d_out])
         else:
@@ -1031,6 +1041,30 @@ class Relu(ElementWiseLayer):
         c = x > 0
         self.comparisons.assign_part_vector(c, base)
         return c.if_else(x, 0)
+
+    def f_prime_part(self, base, size):
+        return self.comparisons.get_vector(base, size)
+
+class Aelu(ElementWiseLayer):
+    """ Fixed-point AeLU layer.
+
+    :param shape: input/output shape (tuple/list of int)
+    """
+    f = staticmethod(aelu)
+    f_prime = staticmethod(aelu_prime)
+    prime_type = sint
+    comparisons = None
+
+    def __init__(self, shape, inputs=None):
+        super(Aelu, self).__init__(shape)
+        self.comparisons = MultiArray(shape, sint)
+
+    def f_part(self, base, size):
+        x = self.X.get_part_vector(base, size)
+        print(x)
+        c = x+1 > 0
+        self.comparisons.assign_part_vector(c, base)
+        return c.if_else(x+1, 0) -1
 
     def f_prime_part(self, base, size):
         return self.comparisons.get_vector(base, size)

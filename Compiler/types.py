@@ -3156,6 +3156,23 @@ class _bitint(Tape._no_truth):
     def full_adder(a, b, carry):
         s = a ^ b
         return s ^ carry, a ^ (s & (carry ^ a))
+    
+    @classmethod
+    def ripple_borrow_subtract(cls, a, b, borrow_in=0, get_borrow=True):
+        borrow = borrow_in
+        res = []
+        for aa, bb in zip(a, b):
+            cc, borrow = cls.full_subtract(aa, bb, borrow)
+            res.append(cc)
+        if get_borrow:
+            res.append(borrow)
+        return res
+
+    @staticmethod
+    def full_subtract(a, b, borrow):
+        s = a ^ b
+        return s ^ borrow, a ^ ~(~s & ~(a ^ borrow))
+
 
     @staticmethod
     def bit_comparator(a, b):
@@ -3286,6 +3303,26 @@ class _bitint(Tape._no_truth):
         borrows = (0,) + list(zip(*floatingpoint.PreOpL(borrow, d)))[1]
         return self.compose(reduce(util.bit_xor, (ai, bi, borrow)) \
                                 for (ai,bi,borrow) in zip(a,b,borrows))
+
+    def sub_circuit(self, other):
+        if type(other) == sgf2n:
+            raise CompilerError('Unclear subtraction')
+        from util import bit_not, bit_and, bit_xor
+        a, b = self.expand(other)
+        n = 1
+        for x in (a + b):
+            try:
+                n = x.n
+                break
+            except:
+                pass
+        d = [(bit_not(bit_xor(ai, bi), n), bit_and(bit_not(ai, n), bi))
+             for (ai,bi) in zip(a,b)]
+        # borrow = lambda y,x,*args: \
+        #     (bit_and(x[0], y[0]), util.OR(x[1], bit_and(x[0], y[1])))
+        # borrows = (0,) + list(zip(*floatingpoint.PreOpL(borrow, d)))[1]
+        return self.compose(reduce(util.bit_xor, (ai, bi, di)) \
+                                for (ai,bi,di) in zip(a,b,d))
 
     def __rsub__(self, other):
         raise NotImplementedError()

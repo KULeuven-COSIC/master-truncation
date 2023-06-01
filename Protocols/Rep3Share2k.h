@@ -16,7 +16,7 @@ template<class T> class ReplicatedPrep2k;
 template<int K>
 class Rep3Share2 : public Rep3Share<Z2<K>>
 {
-    typedef Z2<K> T;
+    
     typedef Rep3Share2 This;
 
 public:
@@ -29,6 +29,7 @@ public:
     typedef ReplicatedPrep2k<Rep3Share2> LivePrep;
     typedef Rep3Share2 Honest;
     typedef SignedZ2<K> clear;
+    typedef Z2<K> T;
 
     typedef GC::SemiHonestRepSecret bit_type;
 

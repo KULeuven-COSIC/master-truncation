@@ -40,6 +40,14 @@ void PRNG::SeedGlobally(const PlayerBase& P)
   SetSeed(seed);
 }
 
+void PairwisePRNG::SeedPairwise(const Player& P, int other_player)
+{
+  octet seed[SEED_SIZE];
+  Create_Pairwise_Seed(seed, P, SEED_SIZE, other_player);
+  SetSeed(seed);
+}
+
+
 void PRNG::SeedGlobally(const Player& P, bool secure)
 {
   if (secure)

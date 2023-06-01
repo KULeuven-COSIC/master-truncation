@@ -1992,6 +1992,19 @@ class shuffle(base.VectorInstruction):
         super(shuffle, self).__init__(*args, **kwargs)
         assert len(args[0]) == len(args[1])
 
+### ML
+@base.vectorize
+class relu(base.Instruction):
+    """ Secret ReLU computation.
+
+    :param: result (sint)
+    :param: input (sint)
+    """
+    __slots__ = []
+    code = base.opcodes['RELU']
+    arg_format = ['sw','s', 'i']
+
+
 ###
 ### Clear comparison instructions
 ###

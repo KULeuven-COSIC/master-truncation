@@ -85,6 +85,9 @@ T Create_Random(const Player& P)
   return res;
 }
 
+/* Produce a random pairwise seed of length len */
+void Create_Pairwise_Seed(octet* seed,const Player& P,int len, int other_player);
+
 /* Produce a random seed of length len */
 void Create_Random_Seed(octet* seed,const PlayerBase& P,int len);
 

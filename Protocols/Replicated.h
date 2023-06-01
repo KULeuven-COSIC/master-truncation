@@ -28,12 +28,19 @@ class Instruction;
 class ReplicatedBase
 {
 public:
-    array<PRNG, 2> shared_prngs;
-
     Player& P;
+    #ifdef OUR_TRUNC
+    array<PairwisePRNG, 2> shared_prngs;
+    #else
+    array<PRNG, 2> shared_prngs;
+    #endif
 
     ReplicatedBase(Player& P);
+    #ifdef OUR_TRUNC
+    ReplicatedBase(Player& P, array<PairwisePRNG, 2>& prngs);
+    #else
     ReplicatedBase(Player& P, array<PRNG, 2>& prngs);
+    #endif
 
     ReplicatedBase branch();
 
@@ -102,6 +109,10 @@ public:
     virtual void trunc_pr(const vector<int>& regs, int size, SubProcessor<T>& proc)
     { (void) regs, (void) size; (void) proc; throw runtime_error("trunc_pr not implemented"); }
 
+    virtual void relu(SubProcessor<T>& proc, int reg0, int reg1, int k) {
+      (void) reg0; (void) reg1; (void)k; (void) proc; throw runtime_error("relu not implemented");
+    }
+
     virtual void randoms(T&, int) { throw runtime_error("randoms not implemented"); }
     virtual void randoms_inst(vector<T>&, const Instruction&);
 
@@ -168,6 +179,9 @@ public:
 
     template<class U>
     void trunc_pr(const vector<int>& regs, int size, U& proc);
+
+    template<class U>
+    void relu(U &proc, int reg0, int reg1, int k);
 
     T get_random();
     void randoms(T& res, int n_bits);

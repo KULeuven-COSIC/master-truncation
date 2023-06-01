@@ -207,6 +207,7 @@ void BaseInstruction::parse_operands(istream& s, int pos, int file_pos)
       case GINPUTMASK:
       case SECSHUFFLE:
       case GSECSHUFFLE:
+      case RELU:
         get_ints(r, s, 2);
         n = get_int(s);
         break;
@@ -1086,6 +1087,9 @@ inline void Instruction::execute(Processor<sint, sgf2n>& Proc) const
         return;
       case INVPERM:
         Proc.Procp.inverse_permutation(*this);
+        return;
+      case RELU:
+        Proc.Procp.protocol.relu(Proc.Procp, r[0], r[1], n);
         return;
       case CHECK:
         {

@@ -1,0 +1,37 @@
+import random
+import numpy as np
+from Compiler import ml
+
+program.use_trunc_pr = True
+
+def my_relu(x):
+    """
+    x: sfix
+    Compute ReLU function on x and returns the result as sfix
+    """
+    if isinstance(x, sfix):
+        # prepare a sfix register with no value
+        res = sfix._new(sfix.int_type(),k=x.k, f=x.f)
+        # output relu res x instruction
+        relu(res.v,x.v,x.k)
+        return res
+    else:
+        raise RuntimeError(f'ReLU on type {x} not supported')
+
+
+values = np.random.rand(10)
+# a = sfix.get_input_from(0)
+# b = sfix.get_input_from(0)
+# c = sfix.get_input_from(0)
+x = sfix(34.56)
+# print(x.f)
+# print(x.k)
+for val in values:
+	print_ln('a = %s, mult(a) = %s', sfix(val).reveal(), (sfix(val)*x).reveal())
+    #print_ln('a = %s, ReLU(a) = %s', sfix(val).reveal(), (ml.relu(sfix(val))).reveal())
+    
+# print_ln('a = %s, ReLU(a) = %s', x.reveal(), (my_relu(x)).reveal())
+# print_ln('a = %s, ReLU(a) = %s', c.reveal(), (my_relu(c)).reveal())
+
+
+
