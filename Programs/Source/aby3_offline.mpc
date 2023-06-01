@@ -1,0 +1,32 @@
+from Compiler.GC.types import sbitvec, sbits
+
+
+multiplications = 10000 #380000000  #~400 mil
+simd = 1000
+n_threads = 4
+ring_size = 64
+
+
+sb = sbits.get_type(simd)
+
+n_loops = multiplications//simd
+
+def three_subtract(a, b, c):
+    return sbits.ripple_borrow_subtract(sbits.ripple_borrow_subtract(a, b), c)
+
+@for_range_multithread(n_threads, 1, n_loops)
+def _(k):
+    print_ln('Start bucket %s', k)
+    a = [sb(2**simd-1 if ((15 >> i & 0x1) > 0) else 0 ) for i in range(ring_size)]
+    b = [sb(2**simd-1 if ((10 >> i & 0x1) > 0) else 0 ) for i in range(ring_size)]
+    c = [sb(2**simd-1 if ((4 >> i & 0x1) > 0) else 0 ) for i in range(ring_size)]
+
+    out = three_subtract(a, b, c)
+    print_ln('Stop bucket %s', k)
+
+# for i in range(int(multiplications/simd)):
+#     three_subtract(a,b,c)
+
+
+#print_ln('ripple adder: %s, carry: %s', sbits.bit_compose([r[i].bit_decompose()[0] for i in range(32)]).reveal(), r[32].bit_decompose()[0].reveal())
+
