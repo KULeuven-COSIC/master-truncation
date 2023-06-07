@@ -47,14 +47,14 @@ inline ReplicatedBase::ReplicatedBase(Player& P) : P(P)
 
   #ifdef OUR_TRUNC
   if (P.my_num() == 0) {
-    shared_prngs[0].SeedPairwise(P, 2); // 1
-    shared_prngs[1].SeedPairwise(P, 1); // 2
+    shared_prngs[1].SeedPairwise(P, 2); // 1
+    shared_prngs[0].SeedPairwise(P, 1); // 2
   }else if(P.my_num() == 1) {
-    shared_prngs[0].SeedPairwise(P, 0); // 2
-    shared_prngs[1].SeedPairwise(P, 2); // 3
+    shared_prngs[1].SeedPairwise(P, 0); // 2
+    shared_prngs[0].SeedPairwise(P, 2); // 3
   }else {
-    shared_prngs[1].SeedPairwise(P, 0); // 1
-    shared_prngs[0].SeedPairwise(P, 1); // 3
+    shared_prngs[0].SeedPairwise(P, 0); // 1
+    shared_prngs[1].SeedPairwise(P, 1); // 3
   }
   #else
 	shared_prngs[0].ReSeed();
