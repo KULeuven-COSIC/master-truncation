@@ -1,10 +1,11 @@
 from Compiler.GC.types import sbitvec, sbits
 
 
-multiplications = 10000 #380000000  #~400 mil
+multiplications = 380000000  #~400 mil
 simd = 1000
 n_threads = 4
 ring_size = 64
+trunc_size = 48
 
 
 sb = sbits.get_type(simd)
@@ -16,13 +17,18 @@ def three_subtract(a, b, c):
 
 @for_range_multithread(n_threads, 1, n_loops)
 def _(k):
-    print_ln('Start bucket %s', k)
+    #print_ln('Start bucket %s', k)
     a = [sb(2**simd-1 if ((15 >> i & 0x1) > 0) else 0 ) for i in range(ring_size)]
     b = [sb(2**simd-1 if ((10 >> i & 0x1) > 0) else 0 ) for i in range(ring_size)]
     c = [sb(2**simd-1 if ((4 >> i & 0x1) > 0) else 0 ) for i in range(ring_size)]
 
+    s = [sb(2**simd-1 if ((15 >> i & 0x1) > 0) else 0 ) for i in range(trunc_size)]
+    t = [sb(2**simd-1 if ((10 >> i & 0x1) > 0) else 0 ) for i in range(trunc_size)]
+    u = [sb(2**simd-1 if ((4 >> i & 0x1) > 0) else 0 ) for i in range(trunc_size)]
+
     out = three_subtract(a, b, c)
-    print_ln('Stop bucket %s', k)
+    out = three_subtract(s, t, u)
+    #print_ln('Stop bucket %s', k)
 
 # for i in range(int(multiplications/simd)):
 #     three_subtract(a,b,c)

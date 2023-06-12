@@ -1,0 +1,165 @@
+program.use_trunc_pr = True
+program.use_split(3)
+
+print_ln('----------------------------------')
+
+import numpy as np
+
+#Run Data_prep.py in ML-Data folder for data preparation
+"""
+First, load the dimensions and weights from player 0
+"""
+weights0 = sfix.Tensor([187, 50])
+weights1 = sfix.Tensor([50, 50])
+weights2 = sfix.Tensor([50, 50])
+weights3 = sfix.Tensor([50, 50])
+weights4 = sfix.Tensor([50, 5])
+
+w0_dim0 = sint.get_input_from(0)
+w0_dim1 = sint.get_input_from(0)
+weights0.input_from(0)
+
+w1_dim0 = sint.get_input_from(0)
+w1_dim1 = sint.get_input_from(0)
+weights1.input_from(0)
+
+w2_dim0 = sint.get_input_from(0)
+w2_dim1 = sint.get_input_from(0)
+weights2.input_from(0)
+
+w3_dim0 = sint.get_input_from(0)
+w3_dim1 = sint.get_input_from(0)
+weights3.input_from(0)
+
+w4_dim0 = sint.get_input_from(0)
+w4_dim1 = sint.get_input_from(0)
+weights4.input_from(0)
+
+"""
+Second, load the dimensions and biases from player 1 + truevals
+"""
+
+biases0 = sfix.Tensor([1, 50])
+biases1 = sfix.Tensor([1, 50])
+biases2 = sfix.Tensor([1, 50])
+biases3 = sfix.Tensor([1, 50])
+biases4 = sfix.Tensor([1, 5])
+
+b0_dim0 = sint.get_input_from(1)
+b0_dim1 = sint.get_input_from(1)
+biases0.input_from(1)
+
+b1_dim0 = sint.get_input_from(1)
+b1_dim1 = sint.get_input_from(1)
+biases1.input_from(1)
+
+b2_dim0 = sint.get_input_from(1)
+b2_dim1 = sint.get_input_from(1)
+biases2.input_from(1)
+
+b3_dim0 = sint.get_input_from(1)
+b3_dim1 = sint.get_input_from(1)
+biases3.input_from(1)
+
+b4_dim0 = sint.get_input_from(1)
+b4_dim1 = sint.get_input_from(1)
+biases4.input_from(1)
+
+
+true_vals = sfix.Tensor([21892, 5])
+t0_dim0 = sint.get_input_from(1)
+t0_dim1 = sint.get_input_from(1)
+true_vals.input_from(1)
+
+"""
+Load input (query samples) from P2
+"""
+input_data = sfix.Tensor([21892, 187])
+
+i0_dim0 = sint.get_input_from(2)
+i0_dim1 = sint.get_input_from(2)
+input_data.input_from(2)
+
+#print_ln('Weights:')
+#print_ln('%s ' * len(weights0[0]), *[x.reveal() for x in weights0[0]])
+
+
+from Compiler import ml
+tf = ml
+
+layers = [
+    tf.keras.layers.Dense(50, activation='aelu'),
+    tf.keras.layers.Dense(50, activation='aelu'),
+    tf.keras.layers.Dense(50, activation='aelu'),
+    tf.keras.layers.Dense(50, activation='aelu'),
+    tf.keras.layers.Dense(5, activation='softmax')
+]
+
+model = tf.keras.models.Sequential(layers)
+
+model.build(input_data.sizes, 256)
+
+#Update the weights and biases of each layer
+model.opt.layers[0].W = weights0
+model.opt.layers[1].W = weights1
+model.opt.layers[2].W = weights2
+model.opt.layers[3].W = weights3
+model.opt.layers[4].W = weights4
+model.opt.layers[0].b = biases0
+model.opt.layers[1].b = biases1
+model.opt.layers[2].b = biases2
+model.opt.layers[3].b = biases3
+model.opt.layers[4].b = biases4
+
+
+guesses = model.predict(input_data)
+
+print_ln('guess %s', guesses.reveal_nested()[:10])
+print_ln('truth %s', true_vals.reveal_nested()[:10])
+
+"""
+Function to compute argmax at run-time
+"""
+def argmax(elements):
+    elements = elements.reveal_nested()
+    i = MemValue(regint(0))
+    max = elements[0]
+    for j,x in enumerate(elements[1:]):
+        @if_(x > max)
+        def _():
+            i.write(regint(j+1))
+    return i.read().reveal()
+
+cfix.set_precision(8,32)    #redefine precision parameters of cfix, f=decimal part, k is the whole number
+
+"""
+Compute accuracy
+"""
+
+y_true = sint.Array(len(true_vals))
+prediction = sint.Array(len(guesses))
+#true_vals = true_vals.reveal_nested()
+#guesses = guesses.reveal_nested()
+@for_range(len(true_vals))
+def _(i):
+    y_true[i] = (argmax(true_vals[i]))
+    prediction[i] = (argmax(guesses[i]))
+
+y_true = y_true.reveal_nested()
+prediction = prediction.reveal_nested()
+print_ln('ytrue: %s', y_true[:10])
+print_ln('prediction: %s', prediction[:10])
+
+num_correct = sum((a == b) for a,b in zip(y_true, prediction))
+print_ln('Number correct classifications: %s', num_correct)
+
+print('Before division')
+total = 21892
+Accuracy_score = cfix(num_correct)/cfix(total)
+
+#print_ln('%s, %s', cfix(num_correct), cfix(total))
+
+#print_ln('Accuracy: %s', Accuracy_score)
+
+print_ln('done')
+
