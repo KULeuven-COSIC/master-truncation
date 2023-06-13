@@ -19,15 +19,63 @@ def my_relu(x):
         raise RuntimeError(f'ReLU on type {x} not supported')
 
 
-values = np.random.rand(10)
-# a = sfix.get_input_from(0)
-# b = sfix.get_input_from(0)
-# c = sfix.get_input_from(0)
-x = sfix(34.56)
+values = np.random.rand(1) 
+a = 2.5
+input_data = sfix.Tensor([1, 187])
+
+i0_dim0 = sint.get_input_from(2)
+i0_dim1 = sint.get_input_from(2)
+input_data.input_from(2)
+
+weights0 = sfix.Tensor([187, 50])
+weights1 = sfix.Tensor([50, 50])
+weights2 = sfix.Tensor([50, 50])
+weights3 = sfix.Tensor([50, 50])
+
+w0_dim0 = sint.get_input_from(0)
+w0_dim1 = sint.get_input_from(0)
+weights0.input_from(0)
+
+w1_dim0 = sint.get_input_from(0)
+w1_dim1 = sint.get_input_from(0)
+weights1.input_from(0)
+
+w2_dim0 = sint.get_input_from(0)
+w2_dim1 = sint.get_input_from(0)
+weights2.input_from(0)
+
+w3_dim0 = sint.get_input_from(0)
+w3_dim1 = sint.get_input_from(0)
+weights3.input_from(0)
+
+
+biases0 = sfix.Tensor([1, 50])
+b0_dim0 = sint.get_input_from(1)
+b0_dim1 = sint.get_input_from(1)
+biases0.input_from(1)
+
+# X = input_data*weights0 
+# Y = X*weights1
+
+
+
+a = sfix.get_input_from(0)
+b = sfix.get_input_from(0)
+c = sfix.get_input_from(0)
+prod = a*b
+prod_a = ml.aelu(prod)
+prod_b = prod_a*c
+prod_c = ml.aelu(prod_b)
+x = sfix(-1)
 # print(x.f)
 # print(x.k)
+
+# print_ln('a = %s, x=%s, mult(a*x) = %s', X.reveal_nested(), weights1.reveal_nested(), Y.reveal_nested())
+print_ln('a = %s, aelu(a)= %s, c = %s, mult(aelu*c) = %s', prod.reveal(), prod_a.reveal(), c.reveal(), prod_b.reveal())
+print_ln('a = %s, aelu(a)=%s', prod_b.reveal(), prod_c.reveal())
+# print_ln('a = %s, aelu(a) = %s', (prod*c).reveal(), ml.aelu((prod*c)).reveal())
 for val in values:
-	print_ln('a = %s, mult(a) = %s', sfix(val).reveal(), (sfix(val)*x).reveal())
+	print_ln('a = %s, x=%s, mult(a*x) = %s', sfix(val).reveal(), x.reveal(), (sfix(val)*x).reveal())
     #print_ln('a = %s, ReLU(a) = %s', sfix(val).reveal(), (ml.relu(sfix(val))).reveal())
     
 # print_ln('a = %s, ReLU(a) = %s', x.reveal(), (my_relu(x)).reveal())

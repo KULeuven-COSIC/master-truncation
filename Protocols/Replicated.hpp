@@ -319,11 +319,11 @@ void Replicated<T>::trunc_pr(const vector<int>& regs, int size, U& proc,
         false_type)
 {
 #ifdef OUR_TRUNC
-    // std::cout << "our trunc" << std::endl;
     assert(regs.size() % 4 == 0);
     assert(proc.P.num_players() == 3);
     assert(proc.Proc != 0);
     typedef typename T::clear value_type;
+    using Z2 = typename T::T;
     int comp_player = 1;
     int check_player1 = 0;
     int check_player2 = 2;
@@ -332,6 +332,8 @@ void Replicated<T>::trunc_pr(const vector<int>& regs, int size, U& proc,
     bool checker2 = P.my_num() == check_player2;
     ArgList<TruncPrTupleWithGap<value_type>> infos(regs);
     auto& S = proc.get_S();
+
+    std::vector<Z2> Gammas1, Gammas2, Gammas3;
 
     octetStream cs;
     octetStream rs;
@@ -344,139 +346,84 @@ void Replicated<T>::trunc_pr(const vector<int>& regs, int size, U& proc,
             {
                 auto& x = S[info.source_base + i];
                 auto& y = S[info.dest_base + i];
-                // PairwisePRNG PR1(proc.P, check_player2);
-                // value_type r_prime = PR1.get_uint();
-                y[0] = this->shared_prngs[1].template get<value_type>();
+                y[0] = this->shared_prngs[0].template get<value_type>();
                 y[1] = (x.sum() >> info.m) - y[0];
                 y[1].pack(cs);
-                // std::cout << "the trunc shares: " << y[0] << " " << y[1] << std::endl;
             }
-        // std::cout << "P" << proc.P.my_num() << ": Sending ";
-        // print_os(cs);
-        // std::cout << " to P" << check_player1 << std::endl;
         P.send_to(check_player1, cs);
     }
 
     else if (checker1)
     {
         P.receive_player(comp_player, cs);
-        // std::cout << "P" << proc.P.my_num() << ": Received ";
-        // print_os(cs);
-        // std::cout << " from P" << comp_player << std::endl;
-
         for (auto info : infos)
             for (int i = 0; i < size; i++)
             {
                 auto& x = S[info.source_base + i];
-                auto& y = S[info.dest_base + i];
-                y[1] = -value_type(-value_type(x[1])) >> info.m;
+                auto& y = S[info.dest_base + i]; 
+                y[1] = -value_type(-value_type(x[1]) >> info.m);;
                 y[0] = cs.get<value_type>();
-                // std::cout << "the trunc shares: " << y[0] << " " << y[1] << std::endl;
+
+                // CHECK PREP
+                Z2 s2 = -value_type(-value_type(x[0]) >> info.m);
+                auto r_pp = this->shared_prngs[1].template get<value_type>();
+                Z2 s3 = r_pp;
+                Z2 gamma2 = y[0] - s2;
+                Gammas2.push_back(gamma2);
+                Z2 gamma3 = y[1] - s3;
+                Gammas3.push_back(gamma3);
+                gamma2.pack(rs);
             }
+
+        P.send_to(check_player2, rs);
+        P.receive_player(check_player2, rs);
+
+        // CHECK
+        for (int i = 0; i < size; i++)
+        {
+            Z2 gamma1 = rs.get<Z2>();
+            Z2 check = gamma1 + Gammas2[i] + Gammas3[i];
+            if (check != Z2(0) and check != Z2(1) and check != Z2(-1))
+            {
+                std::cout << "Abort needed, gamma value: " << check << std::endl;
+                // throw std::runtime_error(std::string("Failed gamma check"));    //abort
+            }
+        }
     }
 
-    else if (checker2)
+    else if (checker2) 
     {   
         for (auto info : infos)
             for (int i = 0; i < size; i++)
             {
                 auto& x = S[info.source_base + i];
                 auto& y = S[info.dest_base + i];
-                // PairwisePRNG PR1(proc.P, comp_player);
-                // value_type r_prime = PR1.get_uint();
-                value_type r_prime = this->shared_prngs[0].template get<value_type>();
-                y[0] = -value_type(-value_type(x[0])) >> info.m;
+                auto r_prime = this->shared_prngs[1].template get<value_type>();
+                y[0] = -value_type(-value_type(x[0]) >> info.m);
                 y[1] = r_prime;
-                // std::cout << "the trunc shares: " << y[0] << " " << y[1] << std::endl;
-            }
-    }
-    
 
-    // ROUND 2
-
-    std::vector<value_type> Gammas1, Gammas2, Gammas3;
-    
-    if (checker1)
-    {
-        for (auto info : infos)
-            for (int i = 0; i < size; i++)
-            {
-                auto& x = S[info.source_base + i];
-                auto& y = S[info.dest_base + i];
-                // PairwisePRNG PR2(proc.P, check_player2);
-                // value_type r_pp = PR2.get_uint();
-                value_type r_pp = this->shared_prngs[0].template get<value_type>();
-                // std::cout << "x0: " << x[0] << "x1: " << x[1] << std::endl;
-                value_type s2 = -value_type(-value_type(x[0])) >> info.m;
-                value_type s3 = r_pp;
-                value_type gamma2 = y[0] - s2;
-                Gammas2.push_back(gamma2);
-                value_type gamma3 = y[1] - s3;
-                Gammas3.push_back(gamma3);       
-                gamma2.pack(rs);
-                // std::cout << "sending gamma: " << gamma2 << std::endl;
-            }
-        // std::cout << "P" << proc.P.my_num() << ": Sending ";
-        // print_os(rs);
-        // std::cout << " to P" << check_player2 << std::endl;
-        P.send_to(check_player2, rs);
-        P.receive_player(check_player2, rs);
-        // std::cout << "P" << proc.P.my_num() << ": Receiving ";
-        // print_os(rs);
-        // std::cout << " from P" << check_player2 << std::endl;
-
-        for (int i = 0; i < size; i++)
-        {
-            auto gamma1 = rs.get<value_type>();
-            // std::cout << "receiving gamma: " << gamma1 << std::endl;
-            value_type check = gamma1 + Gammas2[i] + Gammas3[i];
-            // std::cout << "gammas: " << gamma1 << " " << Gammas2[i] << " " << Gammas3[i] << std::endl;
-            if (abs((check)) > 1)
-            {
-                // std::cout << "Abort needed, gamma value: " << abs((check)) << std::endl;
-                // throw std::runtime_error(std::string("Failed gamma check"));    //abort
-            }
-        }
-    }
-    else if (checker2)
-    {
-        for (auto info : infos)
-            for (int i = 0; i < size; i++)
-            {
-                auto& x = S[info.source_base + i];
-                auto& y = S[info.dest_base + i];
-                // PairwisePRNG PR2(proc.P, check_player1);
-                // value_type r_pp = PR2.get_uint();
-                value_type r_pp = this->shared_prngs[1].template get<value_type>();
-                // std::cout << "x0: " << x[0] << "x1: " << x[1] << "sum: " << x.sum() << std::endl;
-                value_type s1 = (x.sum() >> info.m) - r_pp;
-                value_type s3 = r_pp;
-                value_type gamma1 = y[1] - s1;
+                //CHECK PREP
+                Z2 r_pp = this->shared_prngs[0].template get<value_type>();
+                Z2 s1 = (x.sum() >> info.m) - r_pp;
+                Z2 s3 = r_pp;
+                Z2 gamma1 = y[1] - s1;
                 Gammas1.push_back(gamma1);
-                value_type gamma3 = y[0] - s3;
-                Gammas3.push_back(gamma3);  
+                Z2 gamma3 = y[0] - s3; 
+                Gammas3.push_back(gamma3);
                 gamma1.pack(rs);
-                // std::cout << "sending gamma: " << gamma1 << std::endl;
             }
-        // std::cout << "P" << proc.P.my_num() << ": Sending ";
-        // print_os(rs);
-        // std::cout << " to P" << check_player1 << std::endl;
+
         P.send_to(check_player1, rs);
         P.receive_player(check_player1, rs);
 
-        // std::cout << "P" << proc.P.my_num() << ": Receiving ";
-        // print_os(rs);
-        // std::cout << " from P" << check_player1 << std::endl;
-
+        // CHECK
         for (int i = 0; i < size; i++)
         {
-            auto gamma2 = rs.get<value_type>();
-            // std::cout << "receiving gamma: " << gamma2 << std::endl;
-            value_type check = Gammas1[i] + gamma2 + Gammas3[i];
-            // std::cout << "gammas: " << Gammas1[i] << " " << gamma2 << " " << Gammas3[i] << std::endl;
-            if (abs((check)) > 1)
+            Z2 gamma2 = rs.get<Z2>(); 
+            Z2 check = Gammas1[i] + gamma2 + Gammas3[i];
+            if (check != Z2(0) and check != Z2(1) and check != Z2(-1))
             {
-                // std::cout << "Abort needed, gamma value: " << abs((check)) << std::endl;
+                std::cout << "Abort needed, gamma value: " << check << std::endl;
                 // throw std::runtime_error(std::string("Failed gamma check"));    //abort
             }
         }
@@ -523,7 +470,7 @@ void Replicated<T>::trunc_pr(const vector<int>& regs, int size, U& proc,
         for (int i = 0; i < size; i++)
         {
             value_type masked_x = (masked_s_all[i] + cs.get<value_type>() + os.get<value_type>()) >> info.m;
-            std::cout << "masked x: " << masked_x << std::endl;
+            // std::cout << "masked x: " << masked_x << std::endl;
             auto& y = S[info.dest_base + i];
             
             if (P.my_num() == 0)
@@ -561,7 +508,7 @@ void Replicated<T>::trunc_pr(const vector<int>& regs, int size, U& proc,
 
     if (generate)
     {
-        SeededPRNG G;
+        SeededPRNG G; 
         for (auto info : infos)
             for (int i = 0; i < size; i++)
             {
