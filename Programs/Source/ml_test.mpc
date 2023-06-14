@@ -5,6 +5,8 @@ print_ln('----------------------------------')
 
 import numpy as np
 
+sfix.set_precision(13,21)
+
 #Run Data_prep.py in ML-Data folder for data preparation
 """
 First, load the dimensions and weights from player 0
@@ -80,18 +82,15 @@ i0_dim0 = sint.get_input_from(2)
 i0_dim1 = sint.get_input_from(2)
 input_data.input_from(2)
 
-#print_ln('Weights:')
-#print_ln('%s ' * len(weights0[0]), *[x.reveal() for x in weights0[0]])
-
 
 from Compiler import ml
 tf = ml
 
 layers = [
-    tf.keras.layers.Dense(50, activation='relu'),
-    tf.keras.layers.Dense(50, activation='relu'),
-    tf.keras.layers.Dense(50, activation='relu'),
-    tf.keras.layers.Dense(50, activation='relu'),
+    tf.keras.layers.Dense(50, activation='aelu'),
+    tf.keras.layers.Dense(50, activation='aelu'),
+    tf.keras.layers.Dense(50, activation='aelu'),
+    tf.keras.layers.Dense(50, activation='aelu'),
     tf.keras.layers.Dense(5, activation='softmax')
 ]
 
@@ -111,16 +110,58 @@ model.opt.layers[2].b = biases2
 model.opt.layers[3].b = biases3
 model.opt.layers[4].b = biases4
 
+def mult_only(input_data):
+    """
+    Runs only the multiplications from our network
+    """
+    layer1 = input_data*weights0 
+    layer2 = layer1*weights1 
+    layer3 = layer2*weights2 
+    layer4 = layer3*weights3 
+    layer5 = layer4*weights4 
+    return layer5
+
+def my_aelu(data):
+    a = ml.aelu(data.get_vector())
+    layer_a = sfix.Tensor([1,50])
+    layer_a.assign(a)
+    return layer_a
+
+def my_model(input_data):
+    data = sfix.Tensor([1,len(input_data)])
+    data.assign(input_data)
+    layer1 = data*weights0 + biases0
+    layer1a = my_aelu(layer1)
+    layer2 = layer1a*weights1 + biases1
+    layer2a = my_aelu(layer2)
+    layer3 = layer2a*weights2 + biases2
+    layer3a = my_aelu(layer3)
+    layer4 = layer3a*weights3 + biases3
+    layer4a = my_aelu(layer4)
+    layer5 = layer4a*weights4 + biases4
+    return ml.asoftmax(layer5.get_vector())
+
+
+def my_network(input_data):
+    guesses = sfix.Tensor([input_data.sizes[0], 5])
+    @for_range_multithread(4, 1, input_data.sizes[0])
+    def _(i):
+        guesses[i] = my_model(input_data[i])
+    return guesses 
+
 
 guesses = model.predict(input_data)
+# guesses = my_network(input_data)
+# guesses = mult_only(input_data)
 
 print_ln('guess %s', guesses.reveal_nested()[:10])
 print_ln('truth %s', true_vals.reveal_nested()[:10])
 
-"""
-Function to compute argmax at run-time
-"""
+
 def argmax(elements):
+    """
+    Function to compute argmax at run-time
+    """
     elements = elements.reveal_nested()
     i = MemValue(regint(0))
     max = elements[0]
@@ -153,7 +194,6 @@ print_ln('prediction: %s', prediction[:10])
 num_correct = sum((a == b) for a,b in zip(y_true, prediction))
 print_ln('Number correct classifications: %s', num_correct)
 
-print('Before division')
 total = 21892
 Accuracy_score = cfix(num_correct)/cfix(total)
 

@@ -168,6 +168,10 @@ def argmax(x):
         return comp.if_else(a[0], b[0]), comp.if_else(a[1], b[1])
     return tree_reduce(op, enumerate(x))[0]
 
+def asoftmax(x):
+    """ Approximated Softmax. """
+    return relu(x) / sum(relu(x))
+
 def softmax(x):
     """ Softmax.
 
