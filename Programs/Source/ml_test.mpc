@@ -7,7 +7,19 @@ import numpy as np
 
 sfix.set_precision(8,16)
 
-#Run Data_prep.py in ML-Data folder for data preparation
+"""
+INSTRUCTIONS FOR BENCHMARK
+
+Run Data_prep.py in ML-Data folder for data preparation
+
+Execute this file with replicated-ring-party.x protocol.
+
+For our truncation set the -DOUR_TRUNC flag
+For ABY3 online phase set the -DABY3_MAL_TRUNC flag
+
+By default my_network is run. (can be changed below in the code)
+"""
+
 """
 First, load the dimensions and weights from player 0
 """
@@ -154,8 +166,8 @@ def my_network(input_data):
 guesses = my_network(input_data)
 # guesses = mult_only(input_data)
 
-print_ln('guess %s', guesses.reveal_nested()[:10])
-print_ln('truth %s', true_vals.reveal_nested()[:10])
+# print_ln('guess %s', guesses.reveal_nested()[:10])
+# print_ln('truth %s', true_vals.reveal_nested()[:10])
 
 
 def argmax(elements):
@@ -188,11 +200,11 @@ def _(i):
 
 y_true = y_true.reveal_nested()
 prediction = prediction.reveal_nested()
-print_ln('ytrue: %s', y_true[:10])
-print_ln('prediction: %s', prediction[:10])
+# print_ln('ytrue: %s', y_true[:10])
+# print_ln('prediction: %s', prediction[:10])
 
 num_correct = sum((a == b) for a,b in zip(y_true, prediction))
-print_ln('Number correct classifications: %s', num_correct)
+# print_ln('Number correct classifications: %s', num_correct)
 
 total = 21892
 Accuracy_score = cfix(num_correct)/cfix(total)
