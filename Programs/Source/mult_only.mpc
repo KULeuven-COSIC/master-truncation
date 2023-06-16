@@ -1,0 +1,72 @@
+program.use_trunc_pr = True
+program.use_split(3)
+
+print_ln('----------------------------------')
+
+import numpy as np
+
+sfix.set_precision(8,16)
+
+"""
+INSTRUCTIONS FOR BENCHMARK
+
+Run Data_prep.py in ML-Data folder for data preparation
+
+Execute this file with replicated-ring-party.x protocol.
+
+For our truncation set the -DOUR_TRUNC flag
+For ABY3 online phase set the -DABY3_MAL_TRUNC flag
+
+By default my_network is run. (can be changed below in the code)
+"""
+
+"""
+First, load the dimensions and weights from player 0
+"""
+weights0 = sfix.Tensor([187, 50])
+weights1 = sfix.Tensor([50, 50])
+weights2 = sfix.Tensor([50, 50])
+weights3 = sfix.Tensor([50, 50])
+weights4 = sfix.Tensor([50, 5])
+
+w0_dim0 = sint.get_input_from(0)
+w0_dim1 = sint.get_input_from(0)
+weights0.input_from(0)
+
+w1_dim0 = sint.get_input_from(0)
+w1_dim1 = sint.get_input_from(0)
+weights1.input_from(0)
+
+w2_dim0 = sint.get_input_from(0)
+w2_dim1 = sint.get_input_from(0)
+weights2.input_from(0)
+
+w3_dim0 = sint.get_input_from(0)
+w3_dim1 = sint.get_input_from(0)
+weights3.input_from(0)
+
+w4_dim0 = sint.get_input_from(0)
+w4_dim1 = sint.get_input_from(0)
+weights4.input_from(0)
+
+"""
+Load input (query samples) from P2
+"""
+input_data = sfix.Tensor([21892, 187])
+
+i0_dim0 = sint.get_input_from(2)
+i0_dim1 = sint.get_input_from(2)
+input_data.input_from(2)
+
+def mult_only(input_data):
+    """
+    Runs only the multiplications from our network
+    """
+    layer1 = input_data*weights0 
+    layer2 = layer1*weights1 
+    layer3 = layer2*weights2 
+    layer4 = layer3*weights3 
+    layer5 = layer4*weights4 
+    return layer5
+
+guesses = mult_only(input_data)
