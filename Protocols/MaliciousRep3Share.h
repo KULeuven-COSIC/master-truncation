@@ -46,7 +46,7 @@ public:
     typedef T mac_key_type;
 
     const static bool expensive = true;
-    static const bool has_trunc_pr = false;
+    static const bool has_trunc_pr = true;
     static const bool malicious = true;
 
     static string type_short()

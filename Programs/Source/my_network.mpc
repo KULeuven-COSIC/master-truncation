@@ -1,0 +1,135 @@
+import Compiler.ml as ml
+
+program.use_trunc_pr = True
+program.use_split(3)
+
+print_ln('----------------------------------')
+
+import numpy as np
+
+sfix.set_precision(8,16)
+
+"""
+INSTRUCTIONS FOR BENCHMARK
+
+Run Data_prep.py in ML-Data folder for data preparation
+
+Execute this file with replicated-ring-party.x protocol.
+
+For our truncation set the -DOUR_TRUNC flag
+For ABY3 online phase set the -DABY3_MAL_TRUNC flag
+
+By default my_network is run. (can be changed below in the code)
+"""
+
+"""
+First, load the dimensions and weights from player 0
+"""
+weights0 = sfix.Tensor([187, 50])
+weights1 = sfix.Tensor([50, 50])
+weights2 = sfix.Tensor([50, 50])
+weights3 = sfix.Tensor([50, 50])
+weights4 = sfix.Tensor([50, 5])
+
+w0_dim0 = sint.get_input_from(0)
+w0_dim1 = sint.get_input_from(0)
+weights0.input_from(0)
+
+w1_dim0 = sint.get_input_from(0)
+w1_dim1 = sint.get_input_from(0)
+weights1.input_from(0)
+
+w2_dim0 = sint.get_input_from(0)
+w2_dim1 = sint.get_input_from(0)
+weights2.input_from(0)
+
+w3_dim0 = sint.get_input_from(0)
+w3_dim1 = sint.get_input_from(0)
+weights3.input_from(0)
+
+w4_dim0 = sint.get_input_from(0)
+w4_dim1 = sint.get_input_from(0)
+weights4.input_from(0)
+
+"""
+Second, load the dimensions and biases from player 1 + truevals
+"""
+
+biases0 = sfix.Tensor([1, 50])
+biases1 = sfix.Tensor([1, 50])
+biases2 = sfix.Tensor([1, 50])
+biases3 = sfix.Tensor([1, 50])
+biases4 = sfix.Tensor([1, 5])
+
+b0_dim0 = sint.get_input_from(1)
+b0_dim1 = sint.get_input_from(1)
+biases0.input_from(1)
+
+b1_dim0 = sint.get_input_from(1)
+b1_dim1 = sint.get_input_from(1)
+biases1.input_from(1)
+
+b2_dim0 = sint.get_input_from(1)
+b2_dim1 = sint.get_input_from(1)
+biases2.input_from(1)
+
+b3_dim0 = sint.get_input_from(1)
+b3_dim1 = sint.get_input_from(1)
+biases3.input_from(1)
+
+b4_dim0 = sint.get_input_from(1)
+b4_dim1 = sint.get_input_from(1)
+biases4.input_from(1)
+
+"""
+Load input (query samples) from P2
+"""
+input_data = sfix.Tensor([1, 187])
+
+i0_dim0 = sint.get_input_from(2)
+i0_dim1 = sint.get_input_from(2)
+input_data.input_from(2)
+
+def my_relu(data):
+    a = ml.relu(data.get_vector())
+    layer_a = sfix.Tensor([1,50])
+    layer_a.assign(a)
+    return layer_a
+
+def my_model(input_data):
+    data = input_data # sfix.Tensor([1,len(input_data)])
+    # data.assign(input_data)
+    print_ln('Layer 1 Linear')
+    layer1 = data*weights0 + biases0
+    print_ln('Layer 1 Activation')
+    layer1a = my_relu(layer1)
+    print_ln('Layer 2 Linear')
+    layer2 = layer1a*weights1 + biases1
+    print_ln('Layer 2 Activation')
+    layer2a = my_relu(layer2)
+    print_ln('Layer 3 Linear')
+    layer3 = layer2a*weights2 + biases2
+    print_ln('Layer 3 Activation')
+    layer3a = my_relu(layer3)
+    print_ln('Layer 4 Linear')
+    layer4 = layer3a*weights3 + biases3
+    print_ln('Layer 4 Activation')
+    layer4a = my_relu(layer4)
+    print_ln('Layer 5 Linear')
+    layer5 = layer4a*weights4 + biases4
+    print_ln('Layer 5 Softmax')
+    return ml.asoftmax(layer5.get_vector())
+
+
+def my_network(input_data):
+    #@for_range_multithread(4, 1, input_data.sizes[0])
+    #def _(i):
+    return my_model(input_data) 
+
+
+# guesses = model.predict(input_data)
+guesses = my_network(input_data)
+# guesses = mult_only(input_data)
+
+# print_ln('guess %s', guesses.reveal_nested()[:10])
+# print_ln('truth %s', true_vals.reveal_nested()[:10])

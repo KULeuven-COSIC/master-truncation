@@ -21,7 +21,7 @@ class Player;
  * Beaver multiplication
  */
 template<class T>
-class Beaver : public ProtocolBase<T>
+class Beaver :  public ProtocolBase<T>
 {
 protected:
     vector<T> shares;
@@ -34,11 +34,26 @@ protected:
     typename T::MAC_Check* MC;
 
 public:
-    static const bool uses_triples = true;
 
     Player& P;
+    #ifdef OUR_TRUNC
+    mutable array<PairwisePRNG, 2> shared_prngs;
+    #else
+    mutable array<PRNG, 2> shared_prngs;
+    #endif
 
-    Beaver(Player& P) : prep(0), MC(0), P(P) {}
+    Beaver(Player& P);
+    #ifdef OUR_TRUNC
+    Beaver(Player& P, array<PairwisePRNG, 2>& prngs);
+    #else
+    Beaver(Player& P, array<PRNG, 2>& prngs);
+    #endif
+
+    static const bool uses_triples = true;
+
+    // Player& P;
+
+    // Beaver(Player& P) :  P(P) {}
 
     typename T::Protocol branch();
 
@@ -57,6 +72,11 @@ public:
     int get_n_relevant_players() { return 1 + T::threshold(P.num_players()); }
 
     int get_buffer_size() { return triples.size(); }
+
+    void randoms(T& res, int n_bits);
+
+    template<class U>
+    void trunc_pr(const vector<int>& regs, int size, U& proc);
 };
 
 #endif /* PROTOCOLS_BEAVER_H_ */

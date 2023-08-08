@@ -1,7 +1,7 @@
 from Compiler.GC.types import sbitvec, sbits
 
 
-multiplications = 380000000  #~400 mil
+multiplications = 17100 #380000000  #~400 mil
 simd = 1000
 n_threads = 4
 ring_size = 64
@@ -30,6 +30,19 @@ def _(k):
     out = three_subtract(s, t, u)
     #print_ln('Stop bucket %s', k)
 
+if multiplications % simd != 0:
+    bucket = multiplications % simd
+    sb = sbits.get_type(bucket)
+    a = [sb(2**bucket-1 if ((15 >> i & 0x1) > 0) else 0 ) for i in range(ring_size)]
+    b = [sb(2**bucket-1 if ((10 >> i & 0x1) > 0) else 0 ) for i in range(ring_size)]
+    c = [sb(2**bucket-1 if ((4 >> i & 0x1) > 0) else 0 ) for i in range(ring_size)]
+
+    s = [sb(2**bucket-1 if ((15 >> i & 0x1) > 0) else 0 ) for i in range(trunc_size)]
+    t = [sb(2**bucket-1 if ((10 >> i & 0x1) > 0) else 0 ) for i in range(trunc_size)]
+    u = [sb(2**bucket-1 if ((4 >> i & 0x1) > 0) else 0 ) for i in range(trunc_size)]
+
+    out = three_subtract(a, b, c)
+    out = three_subtract(s, t, u)
 # for i in range(int(multiplications/simd)):
 #     three_subtract(a,b,c)
 

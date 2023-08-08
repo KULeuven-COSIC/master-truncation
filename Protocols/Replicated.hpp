@@ -313,6 +313,13 @@ void Replicated<T>::randoms(T& res, int n_bits)
 //   }
 // }
 
+// template <class T>
+// void ProtocolBase<T>::trunc_pr(const vector<int>& regs, int size, SubProcessor<T>& proc) 
+// {
+//     Replicated<T> R;
+//     R.trunc_pr(regs, size, proc, T::clear::characteristic_two);
+// }
+
 template<class T>
 template<class U>
 void Replicated<T>::trunc_pr(const vector<int>& regs, int size, U& proc,
@@ -336,6 +343,8 @@ void Replicated<T>::trunc_pr(const vector<int>& regs, int size, U& proc,
         else
             have_big_gap = true;
 
+    // std::cout<<"truncpr"<<std::endl;
+
     #ifdef OUR_TRUNC
     if (have_big_gap){
         using Z2 = typename T::T;
@@ -350,7 +359,7 @@ void Replicated<T>::trunc_pr(const vector<int>& regs, int size, U& proc,
 
         octetStream cs;
         octetStream rs;
-
+    
         // ROUND 1
         if (compute)
         {
@@ -749,8 +758,10 @@ template<class U>
 void Replicated<T>::trunc_pr(const vector<int>& regs, int size, U& proc,
         true_type)
 {
-    (void) regs, (void) size, (void) proc;
-    throw runtime_error("trunc_pr not implemented");
+    // (void) regs, (void) size, (void) proc;
+    // throw runtime_error("trunc_pr not implemented");
+    this->trunc_rounds++;
+    trunc_pr(regs, size, proc, T::clear::characteristic_two);
 }
 
 template<class T>

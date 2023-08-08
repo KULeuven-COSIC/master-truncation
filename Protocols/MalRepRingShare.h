@@ -15,14 +15,16 @@ template<class T> class MalRepRingPrep;
 template<int K, int S>
 class MalRepRingShare : public MaliciousRep3Share<SignedZ2<K>>
 {
-    typedef SignedZ2<K> T;
-    typedef MaliciousRep3Share<T> super;
+    
+
     typedef MalRepRingShare This;
 
 public:
     const static int BIT_LENGTH = K;
     const static int SECURITY = S;
 
+    typedef SignedZ2<K> T;
+    typedef MaliciousRep3Share<T> super;
     typedef Beaver<MalRepRingShare> Protocol;
     typedef HashMaliciousRepMC<MalRepRingShare> MAC_Check;
     typedef MAC_Check Direct_MC;

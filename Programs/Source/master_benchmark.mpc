@@ -1,0 +1,113 @@
+program.use_trunc_pr = True
+# program.use_split(3)
+program.options_from_args()
+    
+sfix.set_precision(8,20)
+
+"""
+MNIST: Run ML-Data/mnist/Data_prep.py
+Cifar-10: Run ML-Data/cifar10/Data_prep.py
+"""
+
+if program.args[1] == 'secureml' or program.args[1] == 'lenet':
+    training_samples = sfix.Tensor([60000, 28, 28])
+    training_labels = sfix.Tensor([60000, 10])
+
+    test_samples = sfix.Tensor([10000, 28, 28])
+    test_labels = sfix.Tensor([10000, 10])
+elif program.args[1] == 'alexnet':
+    training_samples = sfix.Tensor([50000, 32, 32, 3])
+    training_labels = sfix.Tensor([50000, 10])
+
+    test_samples = sfix.Tensor([10000, 32, 32, 3])
+    test_labels = sfix.Tensor([10000, 10])
+
+training_samples.input_from(0)
+training_labels.input_from(1)
+
+test_samples.input_from(2)
+test_labels.input_from(2)
+
+
+from Compiler import ml
+tf = ml
+
+
+# SecureML
+if program.args[1] == 'secureml':
+    layers = [
+        tf.keras.layers.Dense(392, activation='relu'),
+        tf.keras.layers.Dense(196, activation='relu'),
+        tf.keras.layers.Dense(10, activation='softmax')
+    ]
+# LeNet MNIST
+elif program.args[1] == 'lenet':
+    layers = [
+        tf.keras.layers.Conv2D(filters = 32, kernel_size = (5,5), padding = 'same', activation='relu', input_shape=(28,28,1)),
+        tf.keras.layers.AveragePooling2D(strides = 2),
+        tf.keras.layers.Conv2D(filters=48, kernel_size=(5,5), padding='valid', activation='relu'),
+        tf.keras.layers.AveragePooling2D(strides = 2),
+        tf.keras.layers.Flatten(),
+        # tf.keras.layers.Dropout(0.5),
+        tf.keras.layers.Dense(256, activation='relu'),
+        tf.keras.layers.Dense(84, activation='relu'),
+        tf.keras.layers.Dense(10, activation='softmax')
+    ]
+elif program.args[1] == 'alexnet':
+    layers = [
+        tf.keras.layers.Conv2D(filters=64, input_shape=(32,32,3), kernel_size=3, strides=1, padding=2),
+        tf.keras.layers.Activation('relu'),
+        tf.keras.layers.MaxPooling2D(pool_size=(2,2), strides=(2,2), padding=0),
+
+        #2nd Convolutional Layer
+        tf.keras.layers.Conv2D(filters=96, kernel_size=3, strides=1, padding=2),
+        tf.keras.layers.Activation('relu'),
+        tf.keras.layers.MaxPooling2D(pool_size=(2,2), strides=(2,2), padding='same'),
+
+        #3rd Convolutional Layer
+        tf.keras.layers.Conv2D(filters=96, kernel_size=(3,3), strides=(1,1), padding=1),
+        tf.keras.layers.Activation('relu'),
+
+        #4th Convolutional Layer
+        tf.keras.layers.Conv2D(filters=64, kernel_size=(3,3), strides=(1,1), padding=1),
+        tf.keras.layers.Activation('relu'),
+
+        #5th Convolutional Layer
+        tf.keras.layers.Conv2D(filters=64, kernel_size=(3,3), strides=(1,1), padding=1),
+        tf.keras.layers.Activation('relu'),
+        tf.keras.layers.MaxPooling2D(pool_size=(3,3), strides=(2,2), padding=0),
+
+        #Passing it to a Fully Connected layer
+        # 1st Fully Connected Layer
+        tf.keras.layers.Dense(128),
+        tf.keras.layers.Activation('relu'),
+
+        tf.keras.layers.Dropout(0.5),
+
+        #2nd Fully Connected Layer
+        tf.keras.layers.Dense(256),
+        tf.keras.layers.Activation('relu'),
+
+        tf.keras.layers.Dropout(0.5),
+
+        #Output Layer
+        tf.keras.layers.Dense(10),
+    ]
+else:
+    raise Exception('unknown network: ' + program.args[1])
+
+model = tf.keras.models.Sequential(layers)
+
+# optim = tf.keras.optimizers.Adam(amsgrad=True)
+optim = tf.keras.optimizers.SGD(momentum=0.9, learning_rate=0.01)
+
+model.compile(optimizer=optim)
+
+opt = model.fit(
+    training_samples,
+    training_labels,
+    epochs=1,
+    batch_size=128,
+    validation_data=(test_samples, test_labels)
+)
+

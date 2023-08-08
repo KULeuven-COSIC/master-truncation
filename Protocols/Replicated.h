@@ -57,6 +57,11 @@ class ProtocolBase
 {
     virtual void buffer_random() { throw not_implemented(); }
 
+    // template<class U>
+    // void trunc_pr(const vector<int>& regs, int size, U& proc, true_type);
+    // template<class U>
+    // void trunc_pr(const vector<int>& regs, int size, U& proc, false_type);
+
 protected:
     vector<T> random;
 
