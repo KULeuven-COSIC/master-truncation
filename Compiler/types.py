@@ -5802,7 +5802,7 @@ class Array(_vectorizable):
     assign_vector = assign
     assign_part_vector = assign
 
-    def assign_all(self, value, use_threads=True, conv=True):
+    def assign_all(self, value, n_threads=None, conv=True):
         """ Assign the same value to all entries.
 
         :param value: convertible to basic type """
@@ -5815,9 +5815,9 @@ class Array(_vectorizable):
                 if value.size != 1:
                     raise CompilerError('cannot assign vector to all elements')
             mem_value = MemValue(value)
-        n_threads = 8 if use_threads and util.is_constant(self.length) and \
-            len(self) > 2**20 and not program.options.garbled and \
-            program.curr_tape.singular else None
+        if not util.is_constant(self.length) or program.options.garbled or \
+           not program.curr_tape.singular:
+            n_threads = None
         if n_threads is not None:
             self.address = MemValue.if_necessary(self.address)
         @library.multithread(n_threads, self.length)
