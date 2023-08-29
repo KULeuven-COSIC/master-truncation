@@ -594,7 +594,7 @@ pip3 install numpy scipy pillow>=9.1 tensorflow
 python3 squeezenet_main.py --in ./SampleImages/n02109961_36.JPEG --saveTFMetadata True
 python3 squeezenet_main.py --in ./SampleImages/n02109961_36.JPEG --scalingFac 12 --saveImgAndWtData True
 cd ../../../..
-Scripts/fixed-rep-to-float.py EzPC/Athos/Networks/SqueezeNetImgNet/SqNetImgNet_img_input.inp
+cp EzPC/Athos/Networks/SqueezeNetImgNet/SqNetImgNet_img_input.inp Player-Data/Input-Binary-P0-0
 ./compile.py -R 64 tf EzPC/Athos/Networks/SqueezeNetImgNet/graphDef.bin 1 trunc_pr split
 Scripts/ring.sh tf-EzPC_Athos_Networks_SqueezeNetImgNet_graphDef.bin-1-trunc_pr-split
 ```
