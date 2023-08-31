@@ -1,3 +1,32 @@
+# MaSTer benchmark
+To run the benchmarks reported in paper: MaSTer: Maliciously Secure Truncation for Replicated Secret Sharing without pre-processing, follow these steps:
+
+First, get data prepared by running Data_prep.py in:
+  - ML-Data/ for MITBIH dataset (inference)
+  - ML-Data/mnist/ for MNIST
+  - ML-Data/cifar-10/ for Cifar-10
+
+To run training:
+```
+make malicious-rep-ring-party.x
+./compile.py -R 64 master_benchmark "network"
+Scripts/mal-rep-ring.sh master_benchmark-"network"
+```
+Here "network" can be either "secureml", "lenet" or "alexnet".
+
+To run inference on heartbeat data:
+```
+./compile.py -R 64 MITBIH_inference
+Scripts/mal-rep-ring.sh MITBIH_inference
+```
+
+To run ABY3 pre-processing:
+```
+make malicious-rep-bin-party.x
+./compile.py -B 64 aby3_offline
+Scripts/mal-rep-bin.sh aby3_offline
+```
+
 # Multi-Protocol SPDZ [![Documentation Status](https://readthedocs.org/projects/mp-spdz/badge/?version=latest)](https://mp-spdz.readthedocs.io/en/latest/?badge=latest) [![Build Status](https://dev.azure.com/data61/MP-SPDZ/_apis/build/status/data61.MP-SPDZ?branchName=master)](https://dev.azure.com/data61/MP-SPDZ/_build/latest?definitionId=7&branchName=master) [![Gitter](https://badges.gitter.im/MP-SPDZ/community.svg)](https://gitter.im/MP-SPDZ/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
 This is a software to benchmark various secure multi-party computation

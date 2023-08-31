@@ -1,5 +1,5 @@
 program.use_trunc_pr = True
-program.use_split(3)
+# program.use_split(3)
 
 print_ln('----------------------------------')
 
@@ -88,7 +88,7 @@ true_vals.input_from(1)
 """
 Load input (query samples) from P2
 """
-input_data = sfix.Tensor([21892, 187])
+input_data = sfix.Tensor([1, 187])
 
 i0_dim0 = sint.get_input_from(2)
 i0_dim1 = sint.get_input_from(2)

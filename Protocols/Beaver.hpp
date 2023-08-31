@@ -175,8 +175,10 @@ void Beaver<T>::trunc_pr(const vector<int>& regs, int size, U& proc)
         else
             have_big_gap = true;
 
-    #ifdef OUR_TRUNC
+
+    #ifdef OUR_TRUNC 
     if (have_big_gap){
+        // std::cout << "here big" << std::endl;
         using Z2 = typename T::T;
         int comp_player = 1;
         int check_player1 = 0;
@@ -203,12 +205,12 @@ void Beaver<T>::trunc_pr(const vector<int>& regs, int size, U& proc)
                     y[1] = (x.sum() >> info.m) - y[0];
                     y[1].pack(cs);
                 }
-            P.send_to(check_player1, cs);
+            P.send_relative(-1, cs);
         }
 
         else if (checker1)
         {
-            P.receive_player(comp_player, cs); 
+            P.receive_relative(1, cs); 
             for (auto info : infos)
                 for (int i = 0; i < size; i++)
                 {
@@ -229,8 +231,9 @@ void Beaver<T>::trunc_pr(const vector<int>& regs, int size, U& proc)
                     gamma2.pack(rs);
                 }
 
-            P.send_to(check_player2, rs);
-            P.receive_player(check_player2, rs);
+            P.exchange(check_player2, rs);
+            // P.send_to_no_stats(check_player2, rs);
+            // P.receive_player_no_stats(check_player2, rs);
 
             // CHECK
             for (int i = 0; i < size; i++)
@@ -246,7 +249,7 @@ void Beaver<T>::trunc_pr(const vector<int>& regs, int size, U& proc)
         }
 
         else if (checker2) 
-        {   
+        {    
             for (auto info : infos)
                 for (int i = 0; i < size; i++)
                 {
@@ -269,8 +272,9 @@ void Beaver<T>::trunc_pr(const vector<int>& regs, int size, U& proc)
                     gamma1.pack(rs);
                 }
 
-            P.send_to(check_player1, rs);
-            P.receive_player(check_player1, rs);
+            P.exchange(check_player1, rs);
+            // P.send_to_no_stats(check_player1, rs);
+            // P.receive_player_no_stats(check_player1, rs);
 
             // CHECK
             for (int i = 0; i < size; i++)
@@ -286,6 +290,7 @@ void Beaver<T>::trunc_pr(const vector<int>& regs, int size, U& proc)
         }
     }
     else if (have_small_gap) {
+        // std::cout << "here small" << std::endl;
         int gen_player = 2;
         int comp_player = 1;
         bool generate = P.my_num() == gen_player;
@@ -344,7 +349,7 @@ void Beaver<T>::trunc_pr(const vector<int>& regs, int size, U& proc)
                     auto r_msb = input.finalize(gen_player);
                     S[info.dest_base + i] += ((r_msb + c_dprime)
                             << (info.k - info.m));
-                    prepare_mul(r_msb, c_dprime);
+                    prepare_mul(r_msb, c_dprime, -1);
                 }
             }
 
@@ -405,6 +410,13 @@ void Beaver<T>::trunc_pr(const vector<int>& regs, int size, U& proc)
                     y[1] = r;  
                 }    
             }
+        std::vector<Z2> swift (size);
+        std::fill(swift.begin(), swift.end(), Z2(-1));
+        cs.store(swift);
+        P.send_relative(-1, cs);
+        P.send_relative(1, cs);
+        P.receive_relative(1, cs);
+        P.receive_relative(-1, os);
     }
     else if (have_small_gap) {
         int gen_player = 2;
@@ -485,7 +497,7 @@ void Beaver<T>::trunc_pr(const vector<int>& regs, int size, U& proc)
     bool compute = P.my_num() == comp_player;
 
     octetStream cs;
-    ReplicatedInput<T> input(0, *this);
+    ReplicatedInput<T> input(P);
 
     if (generate)
     {

@@ -313,13 +313,6 @@ void Replicated<T>::randoms(T& res, int n_bits)
 //   }
 // }
 
-// template <class T>
-// void ProtocolBase<T>::trunc_pr(const vector<int>& regs, int size, SubProcessor<T>& proc) 
-// {
-//     Replicated<T> R;
-//     R.trunc_pr(regs, size, proc, T::clear::characteristic_two);
-// }
-
 template<class T>
 template<class U>
 void Replicated<T>::trunc_pr(const vector<int>& regs, int size, U& proc,

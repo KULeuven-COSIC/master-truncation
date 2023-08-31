@@ -1,6 +1,5 @@
-import Compiler.ml as ml
-
 program.use_trunc_pr = True
+# program.use_edabit(True)
 # program.use_split(3)
 
 print_ln('----------------------------------')
@@ -14,12 +13,9 @@ INSTRUCTIONS FOR BENCHMARK
 
 Run Data_prep.py in ML-Data folder for data preparation
 
-Execute this file with replicated-ring-party.x protocol.
-
 For our truncation set the -DOUR_TRUNC flag
 For ABY3 online phase set the -DABY3_MAL_TRUNC flag
 
-By default my_network is run. (can be changed below in the code)
 """
 
 """
@@ -81,55 +77,51 @@ b4_dim0 = sint.get_input_from(1)
 b4_dim1 = sint.get_input_from(1)
 biases4.input_from(1)
 
+
+true_vals = sfix.Tensor([21892, 5])
+t0_dim0 = sint.get_input_from(1)
+t0_dim1 = sint.get_input_from(1)
+true_vals.input_from(1)
+
 """
 Load input (query samples) from P2
 """
-input_data = sfix.Tensor([1, 187])
+input_data = sfix.Tensor([128, 187])
 
 i0_dim0 = sint.get_input_from(2)
 i0_dim1 = sint.get_input_from(2)
 input_data.input_from(2)
 
-def my_relu(data):
-    a = ml.relu(data.get_vector())
-    layer_a = sfix.Tensor([1,50])
-    layer_a.assign(a)
-    return layer_a
 
-def my_model(input_data):
-    data = input_data # sfix.Tensor([1,len(input_data)])
-    # data.assign(input_data)
-    print_ln('Layer 1 Linear')
-    layer1 = data*weights0 + biases0
-    print_ln('Layer 1 Activation')
-    layer1a = my_relu(layer1)
-    print_ln('Layer 2 Linear')
-    layer2 = layer1a*weights1 + biases1
-    print_ln('Layer 2 Activation')
-    layer2a = my_relu(layer2)
-    print_ln('Layer 3 Linear')
-    layer3 = layer2a*weights2 + biases2
-    print_ln('Layer 3 Activation')
-    layer3a = my_relu(layer3)
-    print_ln('Layer 4 Linear')
-    layer4 = layer3a*weights3 + biases3
-    print_ln('Layer 4 Activation')
-    layer4a = my_relu(layer4)
-    print_ln('Layer 5 Linear')
-    layer5 = layer4a*weights4 + biases4
-    print_ln('Layer 5 Softmax')
-    # return ml.softmax(layer5.get_vector())
-    return layer5.get_vector()
+from Compiler import ml
+tf = ml
 
-def my_network(input_data):
-    #@for_range_multithread(4, 1, input_data.sizes[0])
-    #def _(i):
-    return my_model(input_data) 
+layers = [
+    tf.keras.layers.Dense(50, activation='relu'),
+    tf.keras.layers.Dense(50, activation='relu'),
+    tf.keras.layers.Dense(50, activation='relu'),
+    tf.keras.layers.Dense(50, activation='relu'),
+    tf.keras.layers.Dense(5, activation='softmax')
+]
+
+model = tf.keras.models.Sequential(layers)
+
+model.build(input_data.sizes, 128)
+
+#Update the weights and biases of each layer
+model.opt.layers[0].W = weights0
+model.opt.layers[1].W = weights1
+model.opt.layers[2].W = weights2
+model.opt.layers[3].W = weights3
+model.opt.layers[4].W = weights4
+model.opt.layers[0].b = biases0
+model.opt.layers[1].b = biases1
+model.opt.layers[2].b = biases2
+model.opt.layers[3].b = biases3
+model.opt.layers[4].b = biases4
+
+guesses = model.predict(input_data)
 
 
-# guesses = model.predict(input_data)
-guesses = my_network(input_data)
-# guesses = mult_only(input_data)
 
-# print_ln('guess %s', guesses.reveal_nested()[:10])
-# print_ln('truth %s', true_vals.reveal_nested()[:10])
+

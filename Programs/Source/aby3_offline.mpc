@@ -1,8 +1,15 @@
 from Compiler.GC.types import sbitvec, sbits
 
+# SecureML mnist training - 52457214096 ~51b
+# Lenet mnist training - 1048356362448 ~1t
 
-multiplications = 17100 #380000000  #~400 mil
-simd = 1000
+# SecureML128 mnist training - 112619664 ~100m
+# Lenet128 mnist training - 2236037328 ~2b
+# Alexnet128 cifar10 training - 17561808256 ~ 17,5b
+
+
+multiplications = 100000000  #100 mil
+simd = 1
 n_threads = 4
 ring_size = 64
 trunc_size = 48

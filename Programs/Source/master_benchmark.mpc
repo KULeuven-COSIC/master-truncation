@@ -1,23 +1,24 @@
 program.use_trunc_pr = True
 # program.use_split(3)
+# program.use_edabit(True)
 program.options_from_args()
     
 sfix.set_precision(8,20)
 
 """
-MNIST: Run ML-Data/mnist/Data_prep.py
-Cifar-10: Run ML-Data/cifar10/Data_prep.py
+MNIST: Run Data_prep.py in ML-Data/mnist/
+Cifar-10: Run Data_prep.py in ML-Data/cifar10/
 """
 
 if program.args[1] == 'secureml' or program.args[1] == 'lenet':
-    training_samples = sfix.Tensor([60000, 28, 28])
-    training_labels = sfix.Tensor([60000, 10])
+    training_samples = sfix.Tensor([128, 28, 28])
+    training_labels = sfix.Tensor([128, 10])
 
     test_samples = sfix.Tensor([10000, 28, 28])
     test_labels = sfix.Tensor([10000, 10])
 elif program.args[1] == 'alexnet':
-    training_samples = sfix.Tensor([50000, 32, 32, 3])
-    training_labels = sfix.Tensor([50000, 10])
+    training_samples = sfix.Tensor([128, 32, 32, 3])
+    training_labels = sfix.Tensor([128, 10])
 
     test_samples = sfix.Tensor([10000, 32, 32, 3])
     test_labels = sfix.Tensor([10000, 10])
@@ -103,11 +104,15 @@ optim = tf.keras.optimizers.SGD(momentum=0.9, learning_rate=0.01)
 
 model.compile(optimizer=optim)
 
+
 opt = model.fit(
     training_samples,
     training_labels,
     epochs=1,
     batch_size=128,
-    validation_data=(test_samples, test_labels)
+    # validation_data=(test_samples, test_labels)
 )
+
+# model.build(training_samples.sizes)
+# guess = model.predict(training_samples)
 
