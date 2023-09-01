@@ -6,6 +6,8 @@ First, get data prepared by running Data_prep.py in:
   - ML-Data/mnist/ for MNIST
   - ML-Data/cifar-10/ for Cifar-10
 
+In CONFIG.mine set the flag `-DOUR_TRUNC` for MaSTer truncation, `-DABY3_MAL_TRUNC` for online phase of ABY3 (https://eprint.iacr.org/2018/403.pdf) truncation.
+
 To run training:
 ```
 make malicious-rep-ring-party.x
