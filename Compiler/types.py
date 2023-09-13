@@ -5957,6 +5957,9 @@ class Array(_vectorizable):
         :param other: vector or container of same length and type that supports operations with type of this array """
         return self.get_vector() - other
 
+    def __rsub__(self, other):
+        return other - self.get_vector()
+
     def __mul__(self, value):
         """ Vector multiplication.
 
