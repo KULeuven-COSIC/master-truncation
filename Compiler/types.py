@@ -4007,7 +4007,7 @@ class cfix(_number, _structure):
         elif isinstance(other, sfix):
             return sfix._new(self.v - other.v, k=self.k, f=self.f)
         else:
-            raise NotImplementedError
+            return NotImplemented
 
     @vectorize
     def __neg__(self):
@@ -4122,6 +4122,9 @@ class cfix(_number, _structure):
         :param other: sfix/sint/cfix/cint/regint/int """
         other = self.parse_type(other)
         return other / self
+
+    def reveal(self):
+        return self
 
     @vectorize
     def print_plain(self):
