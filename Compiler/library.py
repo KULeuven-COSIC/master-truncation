@@ -3,7 +3,7 @@ This module defines functions directly available in high-level programs,
 in particularly providing flow control and output.
 """
 
-from Compiler.types import cint,sint,cfix,sfix,sfloat,MPCThread,Array,MemValue,cgf2n,sgf2n,_number,_mem,_register,regint,Matrix,_types, cfloat, _single, localint, personal, copy_doc, _vec
+from Compiler.types import cint,sint,cfix,sfix,sfloat,MPCThread,Array,MemValue,cgf2n,sgf2n,_number,_mem,_register,regint,Matrix,_types, cfloat, _single, localint, personal, copy_doc, _vec, SubMultiArray
 from Compiler.instructions import *
 from Compiler.util import tuplify,untuplify,is_zero
 from Compiler.allocator import RegintOptimizer, AllocPool
@@ -95,7 +95,7 @@ def print_str(s, *args):
                 raise CompilerError('Cannot print secret value:', args[i])
             elif isinstance(val, cfloat):
                 val.print_float_plain()
-            elif isinstance(val, (list, tuple, Array)):
+            elif isinstance(val, (list, tuple, Array, SubMultiArray)):
                 print_str(*_expand_to_print(val))
             else:
                 try:
