@@ -1,4 +1,6 @@
-This directory contains the code used for the benchmarks by [Dalskov
+### Threshold ECDSA
+
+The ECDSA directory contains the code used for the benchmarks by [Dalskov
 et al.](https://eprint.iacr.org/2019/889) `*-ecdsa-party.cpp`
 contains the high-level programs while the two phases are implemented
 in `preprocessing.hpp` and `sign.hpp`, respectively.

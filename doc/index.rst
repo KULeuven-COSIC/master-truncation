@@ -33,6 +33,7 @@ If you're new to MP-SPDZ, consider the following:
    lowest-level
    add-protocol
    homomorphic-encryption
+   ecdsa
    troubleshooting
 
 
