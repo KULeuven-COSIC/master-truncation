@@ -146,7 +146,7 @@ void sign_benchmark(vector<EcTuple<T>>& tuples, T<P256Element::Scalar> sk,
 
     for (size_t i = 0; i < min(10lu, tuples.size()); i++)
     {
-        check(sign(message, 1 << i, tuples[i], MCp, MCc, P, opts, pk, sk, proc), message,
+        check(sign<T>(message, 1 << i, tuples[i], MCp, MCc, P, opts, pk, sk, proc), message,
                 1 << i, pk);
         if (not opts.check_open)
             continue;

@@ -7,6 +7,7 @@ make -j4 ecdsa Fake-ECDSA.x
 
 run()
 {
+    echo $1
     port=$[RANDOM+1024]
     if ! {
 	    for j in $(seq 0 $2); do
@@ -18,14 +19,15 @@ run()
     fi
 }
 
-for i in rep mal-rep shamir mal-shamir; do
+for i in rep mal-rep shamir mal-shamir atlas sy-rep; do
     run $i 2
 done
+
+run rep4 3
 
 for i in semi mascot; do
     run $i 1
 done
-
 
 ./Fake-ECDSA.x
 run fake-spdz 1
