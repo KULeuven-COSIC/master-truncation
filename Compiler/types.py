@@ -7049,7 +7049,7 @@ class _mem(_number):
     __floordiv__ = lambda self,other: self.read() // other
     __mod__ = lambda self,other: self.read() % other
     __pow__ = lambda self,other: self.read() ** other
-    __neg__ = lambda self,other: -self.read()
+    __neg__ = lambda self: -self.read()
     __lt__ = lambda self,other: self.read() < other
     __gt__ = lambda self,other: self.read() > other
     __le__ = lambda self,other: self.read() <= other
