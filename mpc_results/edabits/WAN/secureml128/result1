@@ -1,0 +1,31 @@
+Using security parameter 40
+Trying to run 64-bit computation
+Using SGD
+Starting timer 1 at 0 (0 MB, 0 rounds) after 7.2464e-05
+done with epoch 0
+Elapsed time: 4753.8
+Stopped timer 1 at 4132.87 (7975.56 MB, 201921 rounds)
+Significant amount of unused bits of replicated Z2^64. For more accurate benchmarks, consider reducing the batch size with --batch-size.
+Note that some protocols have larger minimum batch sizes.
+Significant amount of unused edaBits of size 7. For more accurate benchmarks, consider reducing the batch size with --batch-size or increasing the bucket size with --bucket-size.
+Significant amount of unused edaBits of size 20. For more accurate benchmarks, consider reducing the batch size with --batch-size or increasing the bucket size with --bucket-size.
+Significant amount of unused edaBits of size 19. For more accurate benchmarks, consider reducing the batch size with --batch-size or increasing the bucket size with --bucket-size.
+Significant amount of unused edaBits of size 20. For more accurate benchmarks, consider reducing the batch size with --batch-size or increasing the bucket size with --bucket-size.
+Significant amount of unused edaBits of size 4. For more accurate benchmarks, consider reducing the batch size with --batch-size or increasing the bucket size with --bucket-size.
+Significant amount of unused edaBits of size 10. For more accurate benchmarks, consider reducing the batch size with --batch-size or increasing the bucket size with --bucket-size.
+Significant amount of unused edaBits of size 11. For more accurate benchmarks, consider reducing the batch size with --batch-size or increasing the bucket size with --bucket-size.
+Significant amount of unused edaBits of size 12. For more accurate benchmarks, consider reducing the batch size with --batch-size or increasing the bucket size with --bucket-size.
+Significant amount of unused edaBits of size 16. For more accurate benchmarks, consider reducing the batch size with --batch-size or increasing the bucket size with --bucket-size.
+Significant amount of unused edaBits of size 18. For more accurate benchmarks, consider reducing the batch size with --batch-size or increasing the bucket size with --bucket-size.
+Significant amount of unused edaBits of size 22. For more accurate benchmarks, consider reducing the batch size with --batch-size or increasing the bucket size with --bucket-size.
+Significant amount of unused edaBits of size 25. For more accurate benchmarks, consider reducing the batch size with --batch-size or increasing the bucket size with --bucket-size.
+Significant amount of unused edaBits of size 30. For more accurate benchmarks, consider reducing the batch size with --batch-size or increasing the bucket size with --bucket-size.
+Significant amount of unused edaBits of size 34. For more accurate benchmarks, consider reducing the batch size with --batch-size or increasing the bucket size with --bucket-size.
+The following benchmarks are including preprocessing (offline phase).
+Time = 4753.88 seconds 
+Time1 = 4132.87 seconds (7975.56 MB, 201921 rounds)
+Data sent = 8766.27 MB in ~235125 rounds (party 0 only; use '-v' for more details)
+Global data sent = 26066.9 MB (all parties)
+This program might benefit from some protocol options.
+Consider adding the following at the beginning of your code:
+	program.use_trunc_pr = True

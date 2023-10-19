@@ -1,0 +1,14 @@
+Using security parameter 40
+Trying to run 64-bit computation
+----------------------------------
+Significant amount of unused triples of replicated Z2^64. For more accurate benchmarks, consider reducing the batch size with --batch-size.
+Note that some protocols have larger minimum batch sizes.
+Significant amount of unused bits of replicated Z2^64. For more accurate benchmarks, consider reducing the batch size with --batch-size.
+Note that some protocols have larger minimum batch sizes.
+The following benchmarks are including preprocessing (offline phase).
+Time = 42676.9 seconds 
+Data sent = 34059.9 MB in ~2220506 rounds (party 0 only; use '-v' for more details)
+Global data sent = 102373 MB (all parties)
+This program might benefit from some protocol options.
+Consider adding the following at the beginning of your code:
+	program.use_edabit(True)

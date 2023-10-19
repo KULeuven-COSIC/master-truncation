@@ -1,0 +1,29 @@
+Using security parameter 40
+Trying to run 64-bit computation
+----------------------------------
+Significant amount of unused triples of replicated Z2^64. For more accurate benchmarks, consider reducing the batch size with --batch-size.
+Note that some protocols have larger minimum batch sizes.
+Significant amount of unused bits of replicated Z2^64. For more accurate benchmarks, consider reducing the batch size with --batch-size.
+Note that some protocols have larger minimum batch sizes.
+Significant amount of unused edaBits of size 15. For more accurate benchmarks, consider reducing the batch size with --batch-size or increasing the bucket size with --bucket-size.
+Significant amount of unused edaBits of size 16. For more accurate benchmarks, consider reducing the batch size with --batch-size or increasing the bucket size with --bucket-size.
+Significant amount of unused edaBits of size 17. For more accurate benchmarks, consider reducing the batch size with --batch-size or increasing the bucket size with --bucket-size.
+Significant amount of unused edaBits of size 6. For more accurate benchmarks, consider reducing the batch size with --batch-size or increasing the bucket size with --bucket-size.
+Significant amount of unused edaBits of size 7. For more accurate benchmarks, consider reducing the batch size with --batch-size or increasing the bucket size with --bucket-size.
+Significant amount of unused edaBits of size 8. For more accurate benchmarks, consider reducing the batch size with --batch-size or increasing the bucket size with --bucket-size.
+Significant amount of unused edaBits of size 9. For more accurate benchmarks, consider reducing the batch size with --batch-size or increasing the bucket size with --bucket-size.
+Significant amount of unused edaBits of size 14. For more accurate benchmarks, consider reducing the batch size with --batch-size or increasing the bucket size with --bucket-size.
+Significant amount of unused edaBits of size 16. For more accurate benchmarks, consider reducing the batch size with --batch-size or increasing the bucket size with --bucket-size.
+Significant amount of unused edaBits of size 17. For more accurate benchmarks, consider reducing the batch size with --batch-size or increasing the bucket size with --bucket-size.
+Significant amount of unused edaBits of size 18. For more accurate benchmarks, consider reducing the batch size with --batch-size or increasing the bucket size with --bucket-size.
+Significant amount of unused edaBits of size 19. For more accurate benchmarks, consider reducing the batch size with --batch-size or increasing the bucket size with --bucket-size.
+Significant amount of unused edaBits of size 26. For more accurate benchmarks, consider reducing the batch size with --batch-size or increasing the bucket size with --bucket-size.
+Significant amount of unused triples of replicated secret. For more accurate benchmarks, consider reducing the batch size with --batch-size.
+Note that some protocols have larger minimum batch sizes.
+The following benchmarks are including preprocessing (offline phase).
+Time = 66.1895 seconds 
+Data sent = 76.7428 MB in ~3585 rounds (party 0 only; use '-v' for more details)
+Global data sent = 221.831 MB (all parties)
+This program might benefit from some protocol options.
+Consider adding the following at the beginning of your code:
+	program.use_trunc_pr = True

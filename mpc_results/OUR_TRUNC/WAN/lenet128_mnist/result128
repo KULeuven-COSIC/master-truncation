@@ -1,0 +1,18 @@
+Using security parameter 40
+Trying to run 64-bit computation
+Using SGD
+Starting timer 1 at 0 (0 MB, 0 rounds) after 5.5731e-05
+done with epoch 0
+Elapsed time: 68647.7
+Stopped timer 1 at 68371.8 (96723 MB, 5433606 rounds)
+reset after reducing learning rate to 0.00498962
+Significant amount of unused triples of replicated Z2^64. For more accurate benchmarks, consider reducing the batch size with --batch-size.
+Note that some protocols have larger minimum batch sizes.
+The following benchmarks are including preprocessing (offline phase).
+Time = 68917.8 seconds 
+Time1 = 68371.8 seconds (96723 MB, 5433606 rounds)
+Data sent = 97071.9 MB in ~5478385 rounds (party 0 only; use '-v' for more details)
+Global data sent = 291548 MB (all parties)
+This program might benefit from some protocol options.
+Consider adding the following at the beginning of your code:
+	program.use_edabit(True)
