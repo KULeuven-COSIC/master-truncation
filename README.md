@@ -1,7 +1,10 @@
 # MaSTer benchmark
+
 To run the benchmarks reported in paper: MaSTer: Maliciously Secure Truncation for Replicated Secret Sharing without pre-processing, follow these steps:
 
-First, get data prepared by running Data_prep.py in:
+Install all pre-requisites for MP-SPDZ as described below under **TL;DR (Source Distribution)**.
+
+First, get data prepared by running Data_prep.py in: (you may need to install numpy and keras/tensorflow for python)
   - ML-Data/ for MITBIH dataset (inference)
   - ML-Data/mnist/ for MNIST
   - ML-Data/cifar-10/ for Cifar-10
