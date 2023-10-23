@@ -6846,8 +6846,9 @@ class SubMultiArray(_vectorizable):
 
     def reveal(self):
         """ Reveal to :py:obj:`MultiArray` of same shape. """
-        res = MultiArray(self.sizes, self.value_type.clear_type)
-        res[:] = self.get_vector().reveal()
+        v = self.get_vector().reveal()
+        res = MultiArray(self.sizes, type(v))
+        res[:] = v
         return res
 
     def reveal_list(self):
