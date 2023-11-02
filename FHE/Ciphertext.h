@@ -82,8 +82,8 @@ class Ciphertext
   template<class FD>
   Ciphertext& operator+=(const Plaintext_<FD>& other) { cc0 += other.get_poly(); return *this; }
 
-  bool operator==(const Ciphertext& c) { return pk_id == c.pk_id && cc0.equals(c.cc0) && cc1.equals(c.cc1); }
-  bool operator!=(const Ciphertext& c) { return !(*this == c); }
+  bool operator==(const Ciphertext& c) const { return pk_id == c.pk_id && cc0.equals(c.cc0) && cc1.equals(c.cc1); }
+  bool operator!=(const Ciphertext& c) const { return !(*this == c); }
 
   Ciphertext operator+(const Ciphertext& other) const
   { Ciphertext res(*params); ::add(res, *this, other); return res; }

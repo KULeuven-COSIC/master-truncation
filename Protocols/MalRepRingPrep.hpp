@@ -154,7 +154,8 @@ void TripleShuffleSacrifice<T>::triple_sacrifice(vector<array<T, 3>>& triples,
     vector<typename T::open_type> opened;
     MC.POpen(opened, shares, P);
     for (int i = 0; i < C; i++)
-        if (typename T::clear(opened[3 * i] * opened[3 * i + 1]) != opened[3 * i + 2])
+        if (typename T::clear(opened[3 * i] * opened[3 * i + 1])
+                != typename T::clear(opened[3 * i + 2]))
             throw Offline_Check_Error("shuffle opening");
 
     // triples might be same as check_triples
