@@ -1042,6 +1042,9 @@ class cint(_clear, _int):
 
     @staticmethod
     def in_immediate_range(value):
+        if program.options.ring:
+            if abs(value) > 2 ** int(program.options.ring):
+                raise CompilerError('value outside range for domain')
         return value < 2**31 and value >= -2**31
 
     @vectorize_init
