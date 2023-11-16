@@ -30,8 +30,10 @@ If you're new to MP-SPDZ, consider the following:
    client-interface
    non-linear
    preprocessing
+   lowest-level
    add-protocol
    homomorphic-encryption
+   ecdsa
    troubleshooting
 
 

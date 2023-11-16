@@ -99,7 +99,7 @@ template<class U>
 void GC::Processor<T>::check_input(const U& in, const int* params)
 {
 	int n_bits = *params;
-	auto test = in >> (n_bits - 1);
+	auto test = in >> n_bits;
 	if (n_bits == 1)
 	{
 		if (not (in == 0 or in == 1))
@@ -110,7 +110,7 @@ void GC::Processor<T>::check_input(const U& in, const int* params)
 		if (params[1] == 0)
 			throw runtime_error(
 					"input out of range for a " + std::to_string(n_bits)
-							+ "-bit signed integer: " + to_string(in));
+							+ "-bit (un)signed integer: " + to_string(in));
 		else
 			throw runtime_error(
 					"input out of range for a " + to_string(n_bits)

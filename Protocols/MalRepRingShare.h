@@ -37,11 +37,6 @@ public:
     typedef MalRepRingShare<K + 2, S> SquareToBitShare;
     typedef MalRepRingPrep<MalRepRingShare> SquarePrep;
 
-    static string type_short()
-    {
-        return "RR";
-    }
-
     MalRepRingShare()
     {
     }

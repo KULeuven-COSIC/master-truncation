@@ -55,8 +55,6 @@ template<class sint, class sgf2n>
 Machine<sint, sgf2n>::Machine(Names& playerNames, bool use_encryption,
     const OnlineOptions opts, int lg2)
   : my_number(playerNames.my_num()), N(playerNames),
-    direct(opts.direct), opening_sum(opts.opening_sum),
-    receive_threads(opts.receive_threads), max_broadcast(opts.max_broadcast),
     use_encryption(use_encryption), live_prep(opts.live_prep), opts(opts),
     external_clients(my_number)
 {
@@ -69,13 +67,9 @@ Machine<sint, sgf2n>::Machine(Names& playerNames, bool use_encryption,
       exit(1);
     }
 
-  if (opening_sum < 2)
-    this->opening_sum = N.num_players();
-  if (max_broadcast < 2)
-    this->max_broadcast = N.num_players();
-
-  // Set up the fields
-  sint::clear::read_or_generate_setup(prep_dir_prefix<sint>(), opts);
+  // Set the prime modulus from command line or program if applicable
+  if (opts.prime)
+    sint::clear::init_field(opts.prime);
 
   init_binary_domains(opts.security_parameter, lg2);
 
@@ -93,11 +87,25 @@ Machine<sint, sgf2n>::Machine(Names& playerNames, bool use_encryption,
       sint::LivePrep::basic_setup(*P);
     }
 
+  // Set the prime modulus if not done earlier
+  if (not sint::clear::length())
+    sint::clear::read_or_generate_setup(prep_dir_prefix<sint>(), opts);
+
   sint::MAC_Check::setup(*P);
   sint::bit_type::MAC_Check::setup(*P);
   sgf2n::MAC_Check::setup(*P);
 
-  alphapi = read_generate_write_mac_key<sint>(*P);
+  if (opts.live_prep)
+    alphapi = read_generate_write_mac_key<sint>(*P);
+  else
+    {
+      // check for directory
+      Sub_Data_Files<sint>::check_setup(N);
+      // require existing MAC key
+      if (sint::has_mac)
+        read_mac_key<sint>(N, alphapi);
+    }
+
   alpha2i = read_generate_write_mac_key<sgf2n>(*P);
   alphabi = read_generate_write_mac_key<typename
       sint::bit_type::part_type>(*P);
@@ -446,6 +454,7 @@ void Machine<sint, sgf2n>::run(const string& progname)
   finish_timer.start();
 
   // actual usage
+  bool multithread = nthreads > 1;
   auto res = stop_threads();
   DataPositions& pos = res.first;
 
@@ -474,7 +483,10 @@ void Machine<sint, sgf2n>::run(const string& progname)
       cerr << "Communication details "
           "(rounds in parallel threads counted double):" << endl;
       comm_stats.print();
-      cerr << "CPU time = " <<  proc_timer.elapsed() << endl;
+      cerr << "CPU time = " <<  proc_timer.elapsed();
+      if (multithread)
+        cerr << " (overall core time)";
+      cerr << endl;
     }
 
   print_timers();

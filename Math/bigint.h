@@ -91,6 +91,7 @@ public:
   template<int K>
   bigint& operator=(const SignedZ2<K>& x);
 
+  /// Convert to signed representation in :math:`[-p/2,p/2]`.
   template<int X, int L>
   bigint& from_signed(const gfp_<X, L>& other);
   template<class T>
@@ -100,6 +101,8 @@ public:
   int get_min_alloc() { return get_mpz_t()->_mp_alloc; }
 
   void mul(const bigint& x, const bigint& y) { *this = x * y; }
+
+  void add(octetStream& os, int = -1);
 
 #ifdef REALLOC_POLICE
   ~bigint() { lottery(); }
@@ -129,8 +132,8 @@ public:
   void generateUniform(PRNG& G, int n_bits, bool positive = false)
   { G.get(*this, n_bits, positive); }
 
-  void pack(octetStream& os) const { os.store(*this); }
-  void unpack(octetStream& os)     { os.get(*this); };
+  void pack(octetStream& os, int = -1) const { os.store(*this); }
+  void unpack(octetStream& os, int = -1)     { os.get(*this); };
 
   size_t report_size(ReportType type) const;
 };

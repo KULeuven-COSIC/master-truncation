@@ -34,6 +34,9 @@ public:
     typedef ::PrivateOutput<This> PrivateOutput;
     typedef Rep4RingPrep<This> LivePrep;
     typedef LivePrep SquarePrep;
+    typedef LivePrep TriplePrep;
+
+    typedef This Honest;
 
     typedef GC::Rep4Secret bit_type;
 
@@ -55,7 +58,9 @@ public:
     Rep4Share()
     {
     }
-    Rep4Share(const FixedVec<T, 3>& other) : super(other)
+
+    template<class U>
+    Rep4Share(const FixedVec<U, 3>& other) : super(other)
     {
     }
 
