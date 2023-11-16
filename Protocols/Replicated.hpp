@@ -45,33 +45,25 @@ inline ReplicatedBase::ReplicatedBase(Player& P) : P(P)
 	if (not P.is_encrypted())
 		insecure("unencrypted communication", false);
 
-  if(!P.is_shared_prngs_initialized()) {
-    std::cout << "Initializing PRNGs" << std::endl;
-    #ifdef OUR_TRUNC
-    if (P.my_num() == 0) {
-      shared_prngs[1].SeedPairwise(P, 2); // 1
-      shared_prngs[0].SeedPairwise(P, 1); // 2
-    }else if(P.my_num() == 1) {
-      shared_prngs[1].SeedPairwise(P, 0); // 2
-      shared_prngs[0].SeedPairwise(P, 2); // 3
-    }else {
-      shared_prngs[0].SeedPairwise(P, 0); // 1
-      shared_prngs[1].SeedPairwise(P, 1); // 3
-    }
-    #else
-  	shared_prngs[0].ReSeed();
-  	octetStream os;
-  	os.append(shared_prngs[0].get_seed(), SEED_SIZE);
-  	P.send_relative(1, os);
-  	P.receive_relative(-1, os);
-  	shared_prngs[1].SetSeed(os.get_data());
-    #endif
-    // set prngs in player
-    P.set_shared_prngs(shared_prngs);
-  }else{
-    shared_prngs[0].SetSeed(P.get_shared_prng(0));
-    shared_prngs[1].SetSeed(P.get_shared_prng(1));
+  #ifdef OUR_TRUNC
+  if (P.my_num() == 0) {
+    shared_prngs[1].SeedPairwise(P, 2); // 1
+    shared_prngs[0].SeedPairwise(P, 1); // 2
+  }else if(P.my_num() == 1) {
+    shared_prngs[1].SeedPairwise(P, 0); // 2
+    shared_prngs[0].SeedPairwise(P, 2); // 3
+  }else {
+    shared_prngs[0].SeedPairwise(P, 0); // 1
+    shared_prngs[1].SeedPairwise(P, 1); // 3
   }
+  #else
+	shared_prngs[0].ReSeed();
+	octetStream os;
+	os.append(shared_prngs[0].get_seed(), SEED_SIZE);
+	P.send_relative(1, os);
+	P.receive_relative(-1, os);
+	shared_prngs[1].SetSeed(os.get_data());
+  #endif
 }
 
 #ifdef OUR_TRUNC

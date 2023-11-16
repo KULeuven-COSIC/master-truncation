@@ -24,7 +24,6 @@ using namespace std;
 #include "Tools/ezOptionParser.h"
 #include "Networking/PlayerBuffer.h"
 #include "Tools/Lock.h"
-#include "Tools/random.h"
 
 template<class T> class MultiPlayer;
 class Server;
@@ -226,12 +225,6 @@ protected:
 
   mutable Hash ctx;
 
-  #ifdef OUR_TRUNC
-  mutable array<PairwisePRNG, 2> shared_prngs;
-  #else
-  mutable array<PRNG, 2> shared_prngs;
-  #endif
-
 public:
   const Names& N;
 
@@ -241,22 +234,6 @@ public:
   virtual ~Player();
 
   virtual string get_id() const { throw not_implemented(); }
-
-  bool is_shared_prngs_initialized() const { return shared_prngs[0].is_initialized(); }
-
-  #ifdef OUR_TRUNC
-  PairwisePRNG&
-  #else
-  PRNG&
-  #endif
-  get_shared_prng(int i) { return shared_prngs[i]; }
-
-  #ifdef OUR_TRUNC
-  void set_shared_prngs(array<PairwisePRNG, 2> &prngs)
-  #else
-  void set_shared_prngs(array<PRNG, 2> &prngs)
-  #endif
-  { shared_prngs[0].SetSeed(prngs[0]); shared_prngs[1].SetSeed(prngs[1]); }
 
   /**
    * Get number of players

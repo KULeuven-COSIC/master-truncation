@@ -166,8 +166,6 @@ class PRNG
    template<class T>
    T get()
      { T res; res.randomize(*this); return res; }
-
-    bool is_initialized() const { return initialized; }
 };
 
 /// Randomly seeded pseudo-random number generator
