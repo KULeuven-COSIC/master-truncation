@@ -6,6 +6,7 @@
 #ifndef CIRCUIT_INC_COMMON_H_
 #define CIRCUIT_INC_COMMON_H_
 
+#include <cstdint>
 #include <cstring>
 #include <string>
 #include <vector>

@@ -3,10 +3,10 @@ This module defines functions directly available in high-level programs,
 in particularly providing flow control and output.
 """
 
-from Compiler.types import cint,sint,cfix,sfix,sfloat,MPCThread,Array,MemValue,cgf2n,sgf2n,_number,_mem,_register,regint,Matrix,_types, cfloat, _single, localint, personal, copy_doc, _vec
+from Compiler.types import cint,sint,cfix,sfix,sfloat,MPCThread,Array,MemValue,cgf2n,sgf2n,_number,_mem,_register,regint,Matrix,_types, cfloat, _single, localint, personal, copy_doc, _vec, SubMultiArray
 from Compiler.instructions import *
 from Compiler.util import tuplify,untuplify,is_zero
-from Compiler.allocator import RegintOptimizer
+from Compiler.allocator import RegintOptimizer, AllocPool
 from Compiler import instructions,instructions_base,comparison,program,util
 import inspect,math
 import random
@@ -95,7 +95,7 @@ def print_str(s, *args):
                 raise CompilerError('Cannot print secret value:', args[i])
             elif isinstance(val, cfloat):
                 val.print_float_plain()
-            elif isinstance(val, (list, tuple, Array)):
+            elif isinstance(val, (list, tuple, Array, SubMultiArray)):
                 print_str(*_expand_to_print(val))
             else:
                 try:
@@ -411,7 +411,7 @@ class FunctionBlock(Function):
         parent_node = get_tape().req_node
         get_tape().open_scope(lambda x: x[0], None, 'begin-' + self.name)
         block = get_tape().active_basicblock
-        block.alloc_pool = defaultdict(list)
+        block.alloc_pool = AllocPool()
         del parent_node.children[-1]
         self.node = get_tape().req_node
         if get_program().verbose:
@@ -441,9 +441,9 @@ class FunctionBlock(Function):
         old_block = get_tape().active_basicblock
         old_block.set_exit(instructions.jmp(0, add_to_prog=False), block)
         p_return_address = get_tape().function_basicblocks[block]
-        return_address = get_tape().new_reg('ci')
+        return_address = regint()
         old_block.return_address_store = instructions.ldint(return_address, 0)
-        instructions.stmint(return_address, p_return_address)
+        return_address.store_in_mem(p_return_address)
         get_tape().start_new_basicblock(name='call-' + self.name)
         get_tape().active_basicblock.set_return(old_block, self.last_sub_block)
         get_tape().req_node.children.append(self.node)
@@ -935,7 +935,7 @@ def for_range_opt_multithread(n_threads, n_loops):
             ...
 
     Note that you cannot use registers across threads. Use
-    :py:class:`MemValue` instead::
+    :py:class:`~Compiler.types.MemValue` instead::
 
         a = MemValue(sint(0))
         @for_range_opt_multithread(8, 80)
@@ -1069,6 +1069,7 @@ def map_reduce(n_threads, n_parallel, n_loops, initializer, reducer, \
         threads = prog.run_tapes(thread_args)
         for thread in threads:
             prog.join_tape(thread)
+        prog.free_later()
         if len(state):
             if thread_rounds:
                 for i in range(n_threads - remainder):
@@ -1270,7 +1271,7 @@ def _link(pre, g):
                 if util.is_constant_float(new_var):
                     raise CompilerError('cannot reassign constants in blocks')
                 if id(new_var) != id(var):
-                    new_var.link(var)
+                    new_var.link(new_var.conv(var))
 
 def do_while(loop_fn, g=None):
     """ Do-while loop. The loop is stopped if the return value is zero.
@@ -1320,6 +1321,7 @@ def if_then(condition):
     state.req_child = get_tape().open_scope(lambda x: x[0].max(x[1]), \
                                                    name='if-block')
     state.has_else = False
+    state.closed_if = False
     state.caller = [frame[1:] for frame in inspect.stack()[1:]]
     instructions.program.curr_tape.if_states.append(state)
 
@@ -1434,6 +1436,7 @@ def if_e(condition):
         else:
             if_then(condition)
             _run_and_link(body)
+            get_tape().if_states[-1].closed_if = True
     return decorator
 
 def else_(body):
@@ -1443,6 +1446,8 @@ def else_(body):
             _run_and_link(body)
         if_states.pop()
     else:
+        if not if_states[-1].closed_if:
+            raise CompilerError('@if_e not closed before else block')
         else_then()
         _run_and_link(body)
         end_if()

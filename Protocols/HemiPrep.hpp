@@ -10,6 +10,8 @@
 #include "FHEOffline/PairwiseMachine.h"
 #include "Tools/Bundle.h"
 
+#include "FHEOffline/DataSetup.hpp"
+
 template<class T>
 PairwiseMachine* HemiPrep<T>::pairwise_machine = 0;
 
@@ -32,7 +34,7 @@ void HemiPrep<T>::basic_setup(Player& P)
     auto& setup = machine.setup<FD>();
     setup.params.set_matrix_dim_from_options();
     setup.params.set_sec(OnlineOptions::singleton.security_parameter);
-    setup.secure_init(P, machine, T::clear::length(), 0);
+    secure_init(setup, P, machine, typename T::clear(), 0);
     T::clear::template init<typename FD::T>();
 }
 
@@ -140,6 +142,8 @@ void HemiPrep<T>::buffer_bits()
     if (this->proc->P.num_players() == 2)
     {
         auto& prep = get_two_party_prep();
+        prep.buffer_size = BaseMachine::batch_size<T>(DATA_BIT,
+                this->buffer_size);
         prep.buffer_dabits(0);
         for (auto& x : prep.dabits)
             this->bits.push_back(x.first);
@@ -156,6 +160,8 @@ void HemiPrep<T>::buffer_dabits(ThreadQueues* queues)
     if (this->proc->P.num_players() == 2)
     {
         auto& prep = get_two_party_prep();
+        prep.buffer_size = BaseMachine::batch_size<T>(DATA_DABIT,
+                this->buffer_size);
         prep.buffer_dabits(queues);
         this->dabits = prep.dabits;
         prep.dabits.clear();

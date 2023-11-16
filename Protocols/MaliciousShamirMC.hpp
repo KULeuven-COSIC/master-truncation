@@ -3,6 +3,9 @@
  *
  */
 
+#ifndef PROTOCOLS_MALICIOUS_SHAMIR_M_C_HPP_
+#define PROTOCOLS_MALICIOUS_SHAMIR_M_C_HPP_
+
 #include "MaliciousShamirMC.h"
 #include "Machines/ShamirMachine.h"
 
@@ -56,3 +59,5 @@ typename T::open_type MaliciousShamirMC<T>::reconstruct(
     }
     return value;
 }
+
+#endif

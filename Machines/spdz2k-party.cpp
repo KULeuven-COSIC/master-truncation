@@ -28,17 +28,13 @@ int main(int argc, const char** argv)
     opt.parse(argc, argv);
     int s;
     opt.get("-SP")->getInt(s);
+    cerr << "Using SPDZ2k security parameter " << s << endl;
     opt.resetArgs();
     RingOptions ring_options(opt, argc, argv);
     OnlineOptions& online_opts = OnlineOptions::singleton;
     online_opts = {opt, argc, argv, Spdz2kShare<64, 64>(), true};
     DishonestMajorityMachine machine(argc, argv, opt, online_opts, gf2n());
     int k = ring_options.ring_size_from_opts_or_schedule(online_opts.progname);
-
-#ifdef VERBOSE
-    cerr << "Using SPDZ2k with ring length " << k << " and security parameter "
-            << s << endl;
-#endif
 
 #undef Z
 #define Z(K, S) \

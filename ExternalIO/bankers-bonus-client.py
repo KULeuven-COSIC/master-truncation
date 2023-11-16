@@ -28,8 +28,10 @@ for socket in client.sockets:
     os.store(finish)
     os.Send(socket)
 
+# running two rounds
+# first for sint, then for sfix
 for x in bonus, bonus * 2 ** 16:
     client.send_private_inputs([domain(x)])
 
     print('Winning client id is :',
-          client.receive_outputs(domain, 1)[0].v % 2 ** 64)
+          int(client.receive_outputs(domain, 1)[0]))
