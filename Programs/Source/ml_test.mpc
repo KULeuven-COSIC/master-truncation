@@ -1,11 +1,12 @@
 program.use_trunc_pr = True
+# program.use_edabit(True)
 # program.use_split(3)
 
 print_ln('----------------------------------')
 
 import numpy as np
 
-sfix.set_precision(8,16)
+sfix.set_precision(13, 21)
 
 """
 INSTRUCTIONS FOR BENCHMARK
@@ -88,7 +89,7 @@ true_vals.input_from(1)
 """
 Load input (query samples) from P2
 """
-input_data = sfix.Tensor([1, 187])
+input_data = sfix.Tensor([21892, 187])
 
 i0_dim0 = sint.get_input_from(2)
 i0_dim1 = sint.get_input_from(2)
@@ -108,7 +109,7 @@ layers = [
 
 model = tf.keras.models.Sequential(layers)
 
-model.build(input_data.sizes, 256)
+model.build(input_data.sizes, 128)
 
 #Update the weights and biases of each layer
 model.opt.layers[0].W = weights0
@@ -162,8 +163,8 @@ def my_network(input_data):
     return guesses 
 
 
-guesses = model.predict(input_data)
-# guesses = my_network(input_data)
+# guesses = model.predict(input_data)
+guesses = my_network(input_data)
 # guesses = mult_only(input_data)
 
 # print_ln('guess %s', guesses.reveal_nested()[:10])
@@ -204,14 +205,14 @@ prediction = prediction.reveal_nested()
 # print_ln('prediction: %s', prediction[:10])
 
 num_correct = sum((a == b) for a,b in zip(y_true, prediction))
-# print_ln('Number correct classifications: %s', num_correct)
+print_ln('Number of correct classifications: %s', num_correct)
 
 total = 21892
 Accuracy_score = cfix(num_correct)/cfix(total)
 
-#print_ln('%s, %s', cfix(num_correct), cfix(total))
+print_ln('%s, %s', cfix(num_correct), cfix(total))
 
-#print_ln('Accuracy: %s', Accuracy_score)
+print_ln('Accuracy: %s', Accuracy_score)
 
 print_ln('done')
 

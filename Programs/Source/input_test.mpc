@@ -1,0 +1,11 @@
+program.use_trunc_pr = True
+
+sfix.set_precision(8,16)
+demo_input_test = sfix.Tensor([1, 187])
+# demo_input_test.read_from_file(0, 187)[1]
+start = 0
+for element in demo_input_test:
+    start = element.read_from_file(start)
+demo_input_test.print_reveal_nested()
+# d = a + b + c
+# print_ln('a = %s, b = %s, c = %s, d = %s', a.reveal(), b.reveal(), c.reveal(), d.reveal())

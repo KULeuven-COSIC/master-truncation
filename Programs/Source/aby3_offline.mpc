@@ -9,7 +9,7 @@ from Compiler.GC.types import sbitvec, sbits
 
 
 multiplications = 100000000  #100 mil
-simd = 1
+simd = 1000
 n_threads = 4
 ring_size = 64
 trunc_size = 48
