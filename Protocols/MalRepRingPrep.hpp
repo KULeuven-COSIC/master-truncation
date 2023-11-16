@@ -16,14 +16,14 @@
 
 template<class T>
 MalRepRingPrep<T>::MalRepRingPrep(SubProcessor<T>*, DataPositions& usage) :
-        BufferPrep<T>(usage)
+        BufferPrep<T>(usage), prep(dummy_pos)
 {
 }
 
 template<class T>
 RingOnlyBitsFromSquaresPrep<T>::RingOnlyBitsFromSquaresPrep(SubProcessor<T>*,
         DataPositions& usage) :
-        BufferPrep<T>(usage)
+        BufferPrep<T>(usage), prep(0, dummy_pos), bit_proc(0), bit_MC(0)
 {
 }
 
@@ -48,6 +48,15 @@ MalRepRingPrepWithBits<T>::MalRepRingPrepWithBits(SubProcessor<T>* proc,
 }
 
 template<class T>
+RingOnlyBitsFromSquaresPrep<T>::~RingOnlyBitsFromSquaresPrep()
+{
+    if (bit_proc)
+        delete bit_proc;
+    if (bit_MC)
+        delete bit_MC;
+}
+
+template<class T>
 void MalRepRingPrep<T>::buffer_triples()
 {
     if (MalRepRingOptions::singleton.shuffle)
@@ -59,9 +68,6 @@ void MalRepRingPrep<T>::buffer_triples()
 template<class T>
 void MalRepRingPrep<T>::buffer_squares()
 {
-    typedef typename T::prep_type prep_type;
-    DataPositions _;
-    MaliciousRepPrep<prep_type> prep(_);
     assert(this->proc != 0);
     prep.init_honest(this->proc->P);
     prep.buffer_size = BaseMachine::batch_size<T>(DATA_SQUARE,
@@ -75,9 +81,6 @@ void MalRepRingPrep<T>::buffer_squares()
 template<class T>
 void MalRepRingPrep<T>::simple_buffer_triples()
 {
-    typedef typename T::prep_type prep_type;
-    DataPositions _;
-    MaliciousRepPrep<prep_type> prep(_);
     assert(this->proc != 0);
     prep.init_honest(this->proc->P);
     prep.buffer_size = this->buffer_size;
@@ -230,12 +233,12 @@ void RingOnlyBitsFromSquaresPrep<T>::buffer_bits()
 {
     auto proc = this->proc;
     assert(proc != 0);
-    typedef typename T::SquareToBitShare BitShare;
-    typename BitShare::MAC_Check MC;
-    DataPositions usage;
-    typename BitShare::SquarePrep prep(0, usage);
-    SubProcessor<BitShare> bit_proc(MC, prep, proc->P);
-    prep.set_proc(&bit_proc);
+    if (bit_proc == 0)
+    {
+        bit_MC = new typename BitShare::MAC_Check;
+        bit_proc = new SubProcessor<BitShare>(*bit_MC, prep, proc->P);
+        prep.set_proc(bit_proc);
+    }
     bits_from_square_in_ring(this->bits, this->buffer_size, &prep);
 }
 
