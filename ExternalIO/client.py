@@ -55,7 +55,6 @@ class Client:
             elif platform.system() == "Darwin":
                 set_keepalive_osx(plain_socket)
 
-            set_keepalive_linux(plain_socket)
             octetStream(b'%d' % my_client_id).Send(plain_socket)
             self.sockets.append(ctx.wrap_socket(plain_socket,
                                                 server_hostname='P%d' % i))
