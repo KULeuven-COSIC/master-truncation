@@ -702,7 +702,8 @@ class Program(object):
         self._protect_memory = status
 
     def use_cisc(self):
-        return self.options.cisc and (not self.prime or self.rabbit_gap())
+        return self.options.cisc and (not self.prime or self.rabbit_gap()) \
+            and not self.options.max_parallel_open
 
     def rabbit_gap(self):
         assert self.prime
