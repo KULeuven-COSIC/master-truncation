@@ -1358,6 +1358,7 @@ class sbitintvec(sbitvec, _bitint, _number, _sbitintbase):
         :param k: bit length of input """
         return _sbitintbase.pow2(self, k)
 
+sbits.vec = sbitvec
 sbitint.vec = sbitintvec
 
 class cbitfix(object):
