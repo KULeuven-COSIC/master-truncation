@@ -5638,6 +5638,7 @@ class Array(_vectorizable):
     def address(self, address):
         self._address = address
 
+    @read_mem_value
     def get_address(self, index, size=None):
         if isinstance(index, (_secret, _single)):
             raise CompilerError('need cleartext index')
@@ -6146,6 +6147,7 @@ class SubMultiArray(_vectorizable):
         if debug:
             library.print_ln_if(self.address + reduce(operator.mul, self.sizes) * self.value_type.n_elements() > program.allocated_mem[self.value_type.reg_type], 'AOF%d:' % len(self.sizes) + self.debug)
 
+    @read_mem_value
     def __getitem__(self, index):
         """ Part access.
 
