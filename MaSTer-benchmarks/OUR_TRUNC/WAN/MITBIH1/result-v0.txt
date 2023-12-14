@@ -1,0 +1,25 @@
+Using security parameter 40
+Trying to run 64-bit computation
+----------------------------------
+Compiler: ./compile.py -R 64 MITBIH_inference1
+	7749 triples of malicious replicated Z2^64 left
+Significant amount of unused triples of malicious replicated Z2^64 distorting the benchmark. For more accurate benchmarks, consider reducing the batch size with --batch-size.
+Spent 5.19517 seconds (0.521792 MB, 419 rounds) on the online phase and 2.14812 seconds (1.41602 MB, 100 rounds) on the preprocessing/offline phase.
+Communication details (rounds in parallel threads counted double):
+Broadcasting 0.001142 MB in 38 rounds, taking 1.09512 seconds
+Passing around 1.79477 MB in 114 rounds, taking 2.37337 seconds
+Receiving directly 0.884696 MB in 240 rounds, taking 3.74422 seconds
+Sending directly 0.14076 MB in 127 rounds, taking 0.0827781 seconds
+CPU time = 0.117023
+The following benchmarks are including preprocessing (offline phase).
+Time = 7.34447 seconds 
+Data sent = 1.93782 MB in ~519 rounds (party 0 only)
+Global data sent = 6.42282 MB (all parties)
+Actual cost of program:
+  Type int
+         23667        Triples
+          3708           Bits
+This program might benefit from some protocol options.
+Consider adding the following at the beginning of your code:
+	program.use_edabit(True)
+Command line: ./malicious-rep-ring-party.x -v -p 0 -ip HOSTS MITBIH_inference1

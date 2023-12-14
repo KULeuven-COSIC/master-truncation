@@ -1,0 +1,32 @@
+Using security parameter 40
+Trying to run 64-bit computation
+Using SGD
+Starting timer 1 at 0 (0 MB, 0 rounds) after 3.5984e-05
+done with epoch 0
+Elapsed time: 108.233
+Stopped timer 1 at 91.2737 (6313.92 MB, 96129 rounds)
+Compiler: ./compile.py -R 64 master_benchmark secureml torchmnist
+	9999 triples of malicious replicated Z2^64 left
+Significant amount of unused triples of malicious replicated Z2^64 distorting the benchmark. For more accurate benchmarks, consider reducing the batch size with --batch-size.
+	212 triples of malicious replicated Z2^64 left
+	7632 bits of malicious replicated Z2^64 left
+2 threads spent a total of 30.627 seconds (2268.99 MB, 99536 rounds) on the online phase, 77.605 seconds (4670.67 MB, 60593 rounds) on the preprocessing/offline phase, and 108.238 seconds idling.
+Communication details (rounds in parallel threads counted double):
+Broadcasting 1.01336 MB in 37202 rounds, taking 9.88817 seconds
+Passing around 6492.72 MB in 43658 rounds, taking 19.9806 seconds
+Receiving directly 27.9206 MB in 12765 rounds, taking 2.3537 seconds
+Sending directly 444.913 MB in 66504 rounds, taking 3.05505 seconds
+CPU time = 105.324 (overall core time)
+The following benchmarks are including preprocessing (offline phase).
+Time = 108.24 seconds 
+Time1 = 91.2737 seconds (6313.92 MB, 96129 rounds)
+Data sent = 6939.66 MB in ~160129 rounds (party 0 only)
+Global data sent = 19998.7 MB (all parties)
+Actual cost of program:
+  Type int
+     113959789        Triples
+       4382368           Bits
+This program might benefit from some protocol options.
+Consider adding the following at the beginning of your code:
+	program.use_edabit(True)
+Command line: ./malicious-rep-ring-party.x -v -p 0 -ip HOSTS master_benchmark-secureml-torchmnist
