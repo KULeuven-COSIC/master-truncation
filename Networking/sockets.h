@@ -23,6 +23,10 @@
 #include <iostream>
 using namespace std;
 
+// default to one minute
+#ifndef CONNECTION_TIMEOUT
+#define CONNECTION_TIMEOUT 60
+#endif
 
 void error(const char *str);
 
@@ -38,10 +42,15 @@ void receive(T& socket, size_t& a, size_t len);
 
 inline size_t send_non_blocking(int socket, octet* msg, size_t len)
 {
+#ifdef __APPLE__
+  int j = send(socket,msg,min(len,10000lu),MSG_DONTWAIT);
+#else
   int j = send(socket,msg,len,MSG_DONTWAIT);
+#endif
   if (j < 0)
     {
-      if (errno != EINTR and errno != EAGAIN and errno != EWOULDBLOCK)
+      if (errno != EINTR and errno != EAGAIN and errno != EWOULDBLOCK and
+	  errno != ENOBUFS)
         { error("Send error - 1 ");  }
       else
         return 0;

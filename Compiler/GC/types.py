@@ -97,8 +97,9 @@ class bits(Tape.Register, _structure, _bit):
         cbits.conv_cint_vec(a, *res)
         return res
     @classmethod
-    def malloc(cls, size, creator_tape=None):
-        return Program.prog.malloc(size, cls, creator_tape=creator_tape)
+    def malloc(cls, size, creator_tape=None, **kwargs):
+        return Program.prog.malloc(size, cls, creator_tape=creator_tape,
+                                   **kwargs)
     @staticmethod
     def n_elements():
         return 1
@@ -254,6 +255,18 @@ class bits(Tape.Register, _structure, _bit):
             return self.get_type(length).bit_compose([self] * length)
         else:
             raise CompilerError('cannot expand from %s to %s' % (self.n, length))
+    @classmethod
+    def new_vector(cls, size):
+        return cls.get_type(size)()
+    @classmethod
+    def concat(cls, parts):
+        return cls.bit_compose(
+            sum([part.bit_decompose() for part in parts], []))
+    def copy_from_part(self, source, base, size):
+        self.mov(self,
+                 self.bit_compose(source.bit_decompose()[base:base + size]))
+    def vector_size(self):
+        return self.n
 
 class cbits(bits):
     """ Clear bits register. Helper type with limited functionality. """
@@ -425,7 +438,7 @@ class sbits(bits):
         tmp = cbits.get_type(n)()
         tmp.conv_regint_by_bit(n, tmp, other)
         res.load_other(tmp)
-    mov = inst.movsb
+    mov = staticmethod(lambda x, y: inst.movsb(x.n, x, y))
     types = {}
     def __init__(self, *args, **kwargs):
         bits.__init__(self, *args, **kwargs)
@@ -1048,6 +1061,9 @@ def result_conv(x, y):
 
 class sbit(bit, sbits):
     """ Single secret bit. """
+    @classmethod
+    def get_type(cls, length):
+        return sbits.get_type(length)
     def if_else(self, x, y):
         """ Non-vectorized oblivious selection::
 
@@ -1301,6 +1317,7 @@ class sbitintvec(sbitvec, _bitint, _number, _sbitintbase):
 
     """
     bit_extend = staticmethod(_complement_two_extend)
+    mul_functions = {}
     @classmethod
     def popcnt_bits(cls, bits):
         return sbitvec.from_vec(bits).popcnt()
@@ -1326,20 +1343,42 @@ class sbitintvec(sbitvec, _bitint, _number, _sbitintbase):
         elif isinstance(other, sbitfixvec):
             return NotImplemented
         my_bits, other_bits = self.expand(other, False)
-        matrix = []
         m = float('inf')
+        uniform = True
         for x in itertools.chain(my_bits, other_bits):
             try:
+                uniform &= type(x) == type(my_bits[0]) and x.n == my_bits[0].n
                 m = min(m, x.n)
             except:
                 pass
+        if uniform and Program.prog.options.cisc:
+            bl = len(my_bits)
+            key = bl, len(other_bits)
+            if key not in self.mul_functions:
+                def instruction(*args):
+                    res = self.binary_mul(args[bl:2 * bl], args[2 * bl:],
+                                          args[0].n)
+                    for x, y in zip(res, args):
+                        x.mov(y, x)
+                instruction.__name__ = 'binary_mul%sx%s' % (bl, len(other_bits))
+                self.mul_functions[key] = instructions_base.cisc(instruction,
+                                                                 bl)
+            res = [sbits.get_type(m)() for i in range(bl)]
+            self.mul_functions[key](*(res + my_bits + other_bits))
+            return self.from_vec(res)
+        else:
+            return self.binary_mul(my_bits, other_bits, m)
+    @classmethod
+    def binary_mul(cls, my_bits, other_bits, m):
+        matrix = []
         for i, b in enumerate(other_bits):
             if m == 1:
-                matrix.append([x * b for x in my_bits[:len(self.v)-i]])
+                matrix.append([x * b for x in my_bits[:len(my_bits)-i]])
             else:
-                matrix.append((sbitvec.from_vec(my_bits[:len(self.v)-i]) * b).v)
+                matrix.append((
+                    sbitvec.from_vec(my_bits[:len(my_bits)-i]) * b).v)
         v = sbitint.wallace_tree_from_matrix(matrix)
-        return self.from_vec(v[:len(self.v)])
+        return cls.from_vec(v[:len(my_bits)])
     __rmul__ = __mul__
     reduce_after_mul = lambda x: x
     def TruncMul(self, other, k, m, kappa=None, nearest=False):

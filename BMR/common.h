@@ -10,6 +10,7 @@
 #include <cstring>
 #include <string>
 #include <vector>
+#include <stdint.h>
 using namespace std;
 
 #include "Tools/CheckVector.h"

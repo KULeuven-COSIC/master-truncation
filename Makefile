@@ -116,7 +116,7 @@ mascot: mascot-party.x spdz2k mama-party.x
 ifeq ($(OS), Darwin)
 setup: mac-setup
 else
-setup: boost linux-machine-setup
+setup: maybe-boost linux-machine-setup
 endif
 
 tldr: setup
@@ -296,13 +296,17 @@ deps/SimplestOT_C/ref10/Makefile:
 
 .PHONY: Programs/Circuits
 Programs/Circuits:
-	git submodule update --init Programs/Circuits
+	git submodule update --init Programs/Circuits || git clone https://github.com/mkskeller/bristol-fashion Programs/Circuits
 
 deps/libOTe/libOTe:
 	git submodule update --init --recursive deps/libOTe || git clone --recurse-submodules https://github.com/mkskeller/softspoken-implementation deps/libOTe
 boost: deps/libOTe/libOTe
 	cd deps/libOTe; \
 	python3 build.py --setup --boost --install=$(CURDIR)/local
+maybe-boost: deps/libOTe/libOTe
+	cd `mktemp -d`; \
+	PATH="$(CURDIR)/local/bin:$(PATH)" cmake $(CURDIR)/deps/libOTe || \
+	{ cd -; make boost; }
 
 OTE_OPTS += -DENABLE_SOFTSPOKEN_OT=ON -DCMAKE_CXX_COMPILER=$(CXX) -DCMAKE_INSTALL_LIBDIR=lib
 
@@ -334,11 +338,12 @@ OT/OTExtensionWithMatrix.o: $(OTE)
 endif
 
 local/lib/liblibOTe.a: deps/libOTe/libOTe
+	make maybe-boost; \
 	cd deps/libOTe; \
 	PATH="$(CURDIR)/local/bin:$(PATH)" python3 build.py --install=$(CURDIR)/local -- -DBUILD_SHARED_LIBS=0 $(OTE_OPTS) && \
 	touch ../../local/lib/liblibOTe.a
 
-$(SHARED_OTE): deps/libOTe/libOTe
+$(SHARED_OTE): deps/libOTe/libOTe maybe-boost
 	cd deps/libOTe; \
 	python3 build.py --install=$(CURDIR)/local -- -DBUILD_SHARED_LIBS=1 $(OTE_OPTS)
 

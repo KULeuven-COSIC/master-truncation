@@ -41,6 +41,7 @@ public:
     typedef GC::Rep4Secret bit_type;
 
     static const bool malicious = true;
+    static const bool variable_players = false;
 
     static string type_short()
     {

@@ -29,7 +29,7 @@ void set_up_client_socket(int& mysocket,const char* hostname,int Portnum)
    gethostname((char*)my_name,512);
 
    int erp;
-   for (int i = 0; i < 60; i++)
+   for (int i = 0; i < CONNECTION_TIMEOUT; i++)
      { erp=getaddrinfo (hostname, NULL, &hints, &ai);
        if (erp == 0)
          { break; }
@@ -90,7 +90,7 @@ void set_up_client_socket(int& mysocket,const char* hostname,int Portnum)
        if (fl != 0)
          {
            close(mysocket);
-           usleep(wait *= 2);
+           usleep(wait < 1000 ? wait *= 2 : wait);
 #ifdef DEBUG_NETWORKING
            string msg = "Connecting to " + string(hostname) + ":" +
                to_string(Portnum) + " failed";
@@ -102,7 +102,7 @@ void set_up_client_socket(int& mysocket,const char* hostname,int Portnum)
    }
    while (fl == -1
        && (errno == ECONNREFUSED || errno == ETIMEDOUT || errno == EINPROGRESS)
-       && timer.elapsed() < 60);
+       && timer.elapsed() < CONNECTION_TIMEOUT);
 
    if (fl < 0)
      {

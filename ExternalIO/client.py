@@ -2,6 +2,7 @@ import platform
 import socket, ssl
 import struct
 import time
+from domains import *
 
 # The following function is either taken directly or derived from:
 # https://stackoverflow.com/questions/12248132/how-to-change-tcp-keepalive-timer-using-python-script
@@ -61,6 +62,15 @@ class Client:
 
         self.specification = octetStream()
         self.specification.Receive(self.sockets[0])
+        type = self.specification.get_int(4)
+        if type == ord('R'):
+            self.domain = Z2(self.specification.get_int(4))
+            self.clear_domain = Z2(self.specification.get_int(4))
+        elif type == ord('p'):
+            self.domain = Fp(self.specification.get_bigint())
+            self.clear_domain = self.domain
+        else:
+            raise Exception('invalid type')
 
     def receive_triples(self, T, n):
         triples = [[0, 0, 0] for i in range(n)]
@@ -89,18 +99,19 @@ class Client:
         return triples
 
     def send_private_inputs(self, values):
-        T = type(values[0])
+        T = self.domain
         triples = self.receive_triples(T, len(values))
         os = octetStream()
         assert len(values) == len(triples)
         for value, triple in zip(values, triples):
-            (value + triple[0]).pack(os)
+            (T(value) + triple[0]).pack(os)
         for socket in self.sockets:
             os.Send(socket)
 
-    def receive_outputs(self, T, n):
+    def receive_outputs(self, n):
+        T = self.domain
         triples = self.receive_triples(T, n)
-        return [triple[0] for triple in triples]
+        return [int(self.clear_domain(triple[0].v)) for triple in triples]
 
 class octetStream:
     def __init__(self, value=None):

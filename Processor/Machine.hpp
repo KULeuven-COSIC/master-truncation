@@ -60,11 +60,21 @@ Machine<sint, sgf2n>::Machine(Names& playerNames, bool use_encryption,
 {
   OnlineOptions::singleton = opts;
 
-  if (N.num_players() == 1 and sint::is_real)
+  int min_players = 3 - sint::dishonest_majority;
+  if (sint::is_real)
     {
-      cerr << "Need more than one player to run a protocol." << endl;
-      cerr << "Use 'emulate.x' for just running the virtual machine" << endl;
-      exit(1);
+      if (N.num_players() == 1)
+        {
+          cerr << "Need more than one player to run a protocol." << endl;
+          cerr << "Use 'emulate.x' for just running the virtual machine" << endl;
+          exit(1);
+        }
+      else if (N.num_players() < min_players)
+        {
+          cerr << "Need at least " << min_players << " players for this protocol."
+              << endl;
+          exit(1);
+        }
     }
 
   // Set the prime modulus from command line or program if applicable
@@ -480,8 +490,10 @@ void Machine<sint, sgf2n>::run(const string& progname)
 
   if (opts.verbose)
     {
-      cerr << "Communication details "
-          "(rounds in parallel threads counted double):" << endl;
+      cerr << "Communication details";
+      if (multithread)
+        cerr << " (rounds in parallel threads counted double)";
+      cerr << ":" << endl;
       comm_stats.print();
       cerr << "CPU time = " <<  proc_timer.elapsed();
       if (multithread)
@@ -546,6 +558,14 @@ void Machine<sint, sgf2n>::run(const string& progname)
     }
 
   suggest_optimizations();
+
+  if (N.num_players() > 4)
+    {
+      string alt = sint::alt();
+      if (alt.size())
+        cerr << "This protocol doesn't scale well with the number of parties, "
+            << "have you considered using " << alt << " instead?" << endl;
+    }
 
 #ifdef VERBOSE
   cerr << "End of prog" << endl;

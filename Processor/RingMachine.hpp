@@ -41,6 +41,7 @@ template<template<int L> class U, template<class T> class V, class W>
 RingMachine<U, V, W>::RingMachine(int argc, const char** argv,
         ez::ezOptionParser& opt, OnlineOptions& online_opts, int nplayers)
 {
+    assert(nplayers or U<64>::variable_players);
     RingOptions opts(opt, argc, argv);
     W machine(argc, argv, opt, online_opts, gf2n(), nplayers);
     int R = opts.ring_size_from_opts_or_schedule(online_opts.progname);
@@ -65,7 +66,7 @@ template<template<int K, int S> class U, template<class T> class V>
 HonestMajorityRingMachineWithSecurity<U, V>::HonestMajorityRingMachineWithSecurity(
         int argc, const char** argv, ez::ezOptionParser& opt)
 {
-    OnlineOptions online_opts(opt, argc, argv);
+    OnlineOptions online_opts(opt, argc, argv, U<64, 40>());
     RingOptions opts(opt, argc, argv);
     HonestMajorityMachine machine(argc, argv, opt, online_opts);
     int R = opts.ring_size_from_opts_or_schedule(online_opts.progname);

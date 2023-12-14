@@ -134,6 +134,8 @@ size. This is to make sure that even when using memory with run-time
 addresses, the virtual machine is aware of the memory sizes.
 
 
+.. _instructions:
+
 Instructions
 ------------
 

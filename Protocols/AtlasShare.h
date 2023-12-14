@@ -35,6 +35,11 @@ public:
     typedef GC::AtlasSecret bit_type;
 #endif
 
+    static string alt()
+    {
+        return "";
+    }
+
     AtlasShare()
     {
     }
