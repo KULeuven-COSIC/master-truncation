@@ -6,8 +6,6 @@ Install all pre-requisites for MP-SPDZ as described below under **TL;DR (Source 
 
 First, get data prepared by running Data_prep.py in: (you may need to install numpy and keras/tensorflow for python)
   - ML-Data/ for MITBIH dataset (inference)
-  - ML-Data/mnist/ for MNIST
-  - ML-Data/cifar-10/ for Cifar-10
 
 Then, setup: `Scripts/setup-ssl.sh 3`
 
@@ -16,10 +14,10 @@ In CONFIG.mine set the flag `MY_CFLAGS += -DOUR_TRUNC` for MaSTer truncation, `M
 To run training:
 ```
 make malicious-rep-ring-party.x
-./compile.py -R 64 master_benchmark "network"
-Scripts/mal-rep-ring.sh master_benchmark-"network"
+./compile.py -R 64 master_benchmark "network" "dataset"
+Scripts/mal-rep-ring.sh master_benchmark-"network"-"dataset" 
 ```
-Here "network" can be either "secureml", "lenet" or "alexnet".
+Here "network" can be either "secureml", "lenet" or "alexnet" and "dataset" is "torchmnist" for MNIST and "torchcifar" for CIFAR-10
 
 To run inference on heartbeat data:
 ```

@@ -6,19 +6,16 @@ print_ln('----------------------------------')
 
 import numpy as np
 
-sfix.set_precision(13, 21)
+sfix.set_precision(8,16)
 
 """
 INSTRUCTIONS FOR BENCHMARK
 
 Run Data_prep.py in ML-Data folder for data preparation
 
-Execute this file with replicated-ring-party.x protocol.
-
 For our truncation set the -DOUR_TRUNC flag
 For ABY3 online phase set the -DABY3_MAL_TRUNC flag
 
-By default my_network is run. (can be changed below in the code)
 """
 
 """
@@ -123,96 +120,8 @@ model.opt.layers[2].b = biases2
 model.opt.layers[3].b = biases3
 model.opt.layers[4].b = biases4
 
-def mult_only(input_data):
-    """
-    Runs only the multiplications from our network
-    """
-    layer1 = input_data*weights0 
-    layer2 = layer1*weights1 
-    layer3 = layer2*weights2 
-    layer4 = layer3*weights3 
-    layer5 = layer4*weights4 
-    return layer5
-
-def my_relu(data):
-    a = ml.relu(data.get_vector())
-    layer_a = sfix.Tensor([1,50])
-    layer_a.assign(a)
-    return layer_a
-
-def my_model(input_data):
-    data = sfix.Tensor([1,len(input_data)])
-    data.assign(input_data)
-    layer1 = data*weights0 + biases0
-    layer1a = my_relu(layer1)
-    layer2 = layer1a*weights1 + biases1
-    layer2a = my_relu(layer2)
-    layer3 = layer2a*weights2 + biases2
-    layer3a = my_relu(layer3)
-    layer4 = layer3a*weights3 + biases3
-    layer4a = my_relu(layer4)
-    layer5 = layer4a*weights4 + biases4
-    return ml.asoftmax(layer5.get_vector())
+guesses = model.predict(input_data)
 
 
-def my_network(input_data):
-    guesses = sfix.Tensor([input_data.sizes[0], 5])
-    @for_range_multithread(4, 1, input_data.sizes[0])
-    def _(i):
-        guesses[i] = my_model(input_data[i])
-    return guesses 
 
-
-# guesses = model.predict(input_data)
-guesses = my_network(input_data)    # Run this for 95.9% accuracy
-# guesses = mult_only(input_data)
-
-# print_ln('guess %s', guesses.reveal_nested()[:10])
-# print_ln('truth %s', true_vals.reveal_nested()[:10])
-
-
-def argmax(elements):
-    """
-    Function to compute argmax at run-time
-    """
-    elements = elements.reveal_nested()
-    i = MemValue(regint(0))
-    max = elements[0]
-    for j,x in enumerate(elements[1:]):
-        @if_(x > max)
-        def _():
-            i.write(regint(j+1))
-    return i.read().reveal()
-
-cfix.set_precision(8,32)    #redefine precision parameters of cfix, f=decimal part, k is the whole number
-
-"""
-Compute accuracy
-"""
-
-y_true = sint.Array(len(true_vals))
-prediction = sint.Array(len(guesses))
-#true_vals = true_vals.reveal_nested()
-#guesses = guesses.reveal_nested()
-@for_range(len(true_vals))
-def _(i):
-    y_true[i] = (argmax(true_vals[i]))
-    prediction[i] = (argmax(guesses[i]))
-
-y_true = y_true.reveal_nested()
-prediction = prediction.reveal_nested()
-# print_ln('ytrue: %s', y_true[:10])
-# print_ln('prediction: %s', prediction[:10])
-
-num_correct = sum((a == b) for a,b in zip(y_true, prediction))
-print_ln('Number of correct classifications: %s', num_correct)
-
-total = 21892
-Accuracy_score = cfix(num_correct)/cfix(total)
-
-print_ln('%s, %s', cfix(num_correct), cfix(total))
-
-print_ln('Accuracy: %s', Accuracy_score)
-
-print_ln('done')
 

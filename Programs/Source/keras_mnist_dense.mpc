@@ -1,6 +1,6 @@
 # this trains a dense neural network on MNIST
 # see https://github.com/csiro-mlai/mnist-mpc for data preparation
-
+# program.use_trunc_pr = True
 program.options_from_args()
 
 if 'torch' in program.args:
@@ -16,16 +16,16 @@ if 'torch' in program.args:
     (training_labels, training_samples), (test_labels, test_samples) = data
 else:
     training_samples = sfix.Tensor([60000, 28, 28])
-    training_labels = sint.Tensor([60000, 10])
+    training_labels = sfix.Tensor([60000, 10])
 
     test_samples = sfix.Tensor([10000, 28, 28])
-    test_labels = sint.Tensor([10000, 10])
-
-    training_labels.input_from(0)
+    test_labels = sfix.Tensor([10000, 10])
+    
+    training_labels.input_from(1)
     training_samples.input_from(0)
 
-    test_labels.input_from(0)
-    test_samples.input_from(0)
+    test_labels.input_from(2)
+    test_samples.input_from(2)
 
 from Compiler import ml
 tf = ml
