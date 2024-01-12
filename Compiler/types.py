@@ -6070,9 +6070,15 @@ class Array(_vectorizable):
         :returns: destination for final position, -1 for eof reached,
              or -2 for file not found (regint)
         """
-        stop, shares = self.value_type.read_from_file(start, len(self))
-        self.assign(shares)
-        return stop
+        start = regint(start)
+        res = MemValue(0)
+        @library.multithread(None, len(self), max_size=program.budget)
+        def _(base, size):
+            stop, shares = self.value_type.read_from_file(start, size)
+            self.assign(shares, base=base)
+            start.iadd(size)
+            res.write(stop)
+        return res
 
     def write_to_file(self, position=None):
         """ Write shares of integer representation to
@@ -6082,7 +6088,14 @@ class Array(_vectorizable):
         :param position: start position (int/regint/cint),
             defaults to end of file
         """
-        self.value_type.write_to_file(list(self), position)
+        if position is not None:
+            position = regint(position)
+        @library.multithread(None, len(self), max_size=program.budget)
+        def _(base, size):
+            self.value_type.write_to_file(self.get_vector(base=base, size=size),
+                                          position)
+            if position is not None:
+                position.iadd(size)
 
     def read_from_socket(self, socket, debug=False):
         """ Read content from socket. """
@@ -6406,7 +6419,7 @@ class SubMultiArray(_vectorizable):
         assert vector.size <= self.total_size()
         self.value_type.conv(vector).store_in_mem(self.address + base)
 
-    def assign(self, other):
+    def assign(self, other, base=0):
         """ Assign container to content. Not implemented for floating-point.
 
         :param other: container of matching size and type """
@@ -6416,7 +6429,7 @@ class SubMultiArray(_vectorizable):
             self.assign_vector(other.get_vector())
         except:
             for i, x in enumerate(other):
-                self[i].assign(x)
+                self[base + i].assign(x)
 
     def get_part_vector(self, base=0, size=None):
         """ Vector from range of the first dimension, including all
