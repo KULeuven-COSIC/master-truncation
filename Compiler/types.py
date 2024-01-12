@@ -4238,6 +4238,9 @@ class cfix(_number, _structure):
         floatoutput(player, self.v, cint(-self.f), cint(0), cint(0))
         reset_global_vector_size()
 
+    def link(self, other):
+        self.v.link(other.v)
+
 class _single(_number, _secret_structure):
     """ Representation as single integer preserving the order """
     """ E.g. fixed-point numbers """
