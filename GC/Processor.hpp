@@ -324,7 +324,6 @@ void Processor<T>::andrsvec(const vector<int>& args)
         int n_args = (*it++ - 3) / 2;
         int size = *it++;
         int base = *(it + n_args);
-        assert(n_args <= N_BITS);
         for (int i = 0; i < size; i += 1)
         {
             if (i % N_BITS == 0)
