@@ -81,9 +81,9 @@ RUN echo "CXX = ${cxx}" >> CONFIG.mine \
         && echo "SSL_DIR = '-DSSL_DIR=\"${ssl_dir}/\"'" >> CONFIG.mine
 
 # ssl keys
-ARG cryptoplayers=0
+ARG cryptoplayers=
 ENV PLAYERS ${cryptoplayers}
-RUN ./Scripts/setup-ssl.sh ${cryptoplayers} ${ssl_dir}
+RUN ./Scripts/setup-ssl.sh "${cryptoplayers}" ${ssl_dir}
 
 RUN make clean-deps boost libote
 
