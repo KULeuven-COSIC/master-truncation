@@ -10,6 +10,7 @@ circuit. See :ref:`protocol-pairs` for the exact protocols.
 
 from Compiler.types import MemValue, read_mem_value, regint, Array, cint
 from Compiler.types import _bitint, _number, _fix, _structure, _bit, _vec, sint, sintbit
+from Compiler.types import vectorized_classmethod
 from Compiler.program import Tape, Program
 from Compiler.exceptions import *
 from Compiler import util, oram, floatingpoint, library
@@ -766,8 +767,9 @@ class sbitvec(_vec, _bit):
                         self.v = sbits.get_type(n)(other).bit_decompose()
                     assert len(self.v) == n
                     assert size is None or size == self.v[0].n
-            @classmethod
-            def load_mem(cls, address, size=None):
+            @vectorized_classmethod
+            def load_mem(cls, address):
+                size = instructions_base.get_global_vector_size()
                 if size not in (None, 1):
                     assert isinstance(address, int) or len(address) == 1
                     sb = sbits.get_type(size)
@@ -1342,7 +1344,10 @@ class sbitintvec(sbitvec, _bitint, _number, _sbitintbase):
             return other * self.v[0]
         elif isinstance(other, sbitfixvec):
             return NotImplemented
-        my_bits, other_bits = self.expand(other, False)
+        try:
+            my_bits, other_bits = self.expand(other, False)
+        except:
+            return NotImplemented
         m = float('inf')
         uniform = True
         for x in itertools.chain(my_bits, other_bits):
@@ -1406,6 +1411,8 @@ class cbitfix(object):
     conv = staticmethod(lambda x: x)
     load_mem = classmethod(lambda cls, *args: cls._new(cbits.load_mem(*args)))
     store_in_mem = lambda self, *args: self.v.store_in_mem(*args)
+    mem_size = staticmethod(lambda *args: 1)
+    size = 1
     @classmethod
     def _new(cls, value):
         if isinstance(value, list):
