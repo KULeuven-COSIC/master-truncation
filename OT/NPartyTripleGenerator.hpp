@@ -70,6 +70,14 @@ Spdz2kTripleGenerator<T>::Spdz2kTripleGenerator(const OTTripleSetup& setup,
 }
 
 template<class T>
+void OTTripleGenerator<T>::set_batch_size(int batch_size)
+{
+    nTriplesPerLoop = DIV_CEIL(batch_size, nloops);
+    nTriples = nTriplesPerLoop * nloops;
+    nPreampTriplesPerLoop = nTriplesPerLoop * nAmplify;
+}
+
+template<class T>
 OTTripleGenerator<T>::OTTripleGenerator(const OTTripleSetup& setup,
         const Names& names, int thread_num, int _nTriples, int nloops,
         MascotParams& machine, mac_key_type mac_key, Player* parentPlayer) :
@@ -84,11 +92,9 @@ OTTripleGenerator<T>::OTTripleGenerator(const OTTripleSetup& setup,
         machine(machine),
         MC(0)
 {
-    nTriplesPerLoop = DIV_CEIL(_nTriples, nloops);
-    nTriples = nTriplesPerLoop * nloops;
     field_size = T::open_type::size() * 8;
     nAmplify = machine.amplify ? N_AMPLIFY : 1;
-    nPreampTriplesPerLoop = nTriplesPerLoop * nAmplify;
+    set_batch_size(_nTriples);
 
     int n = nparties;
     //baseReceiverInput = machines[0]->baseReceiverInput;
@@ -100,6 +106,12 @@ OTTripleGenerator<T>::OTTripleGenerator(const OTTripleSetup& setup,
     baseSenderInputs = setup.baseSenderInputs;
     players.resize(n-1);
 
+    // copy base OT inputs + outputs
+    for (int j = 0; j < 128; j++)
+    {
+        baseReceiverInput.set_bit(j, (unsigned int)setup.get_base_receiver_input(j));
+    }
+
     for (int i = 0; i < n-1; i++)
     {
         // i for indexing, other_player is actual number
@@ -108,12 +120,6 @@ OTTripleGenerator<T>::OTTripleGenerator(const OTTripleSetup& setup,
             other_player = i + 1;
         else
             other_player = i;
-
-        // copy base OT inputs + outputs
-        for (int j = 0; j < 128; j++)
-        {
-            baseReceiverInput.set_bit(j, (unsigned int)setup.get_base_receiver_input(j));
-        }
 
         players[i] = new VirtualTwoPartyPlayer(globalPlayer, other_player);
     }
@@ -489,8 +495,8 @@ void OTTripleGenerator<T>::generatePlainBits()
     machine.set_passive();
     machine.output = false;
 
-    int n = multiple_minimum(100 * nPreampTriplesPerLoop,
-            T::open_type::size_in_bits());
+    int batch_size = nPreampTriplesPerLoop;
+    int n = multiple_minimum(batch_size, T::Rectangle::n_rows_allocated());
 
     valueBits.resize(1);
     valueBits[0].resize(n);
@@ -505,7 +511,7 @@ void OTTripleGenerator<T>::generatePlainBits()
 
     for (int j = 0; j < n; j++)
     {
-        if (j % T::open_type::size_in_bits() < T::open_type::length())
+        if (j % T::Rectangle::n_rows_allocated() < T::open_type::length())
         {
             bool b = valueBits[0].get_bit(j);
             plainBits.push_back({b, b});

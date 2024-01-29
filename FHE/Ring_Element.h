@@ -27,6 +27,8 @@ class RingReadIterator;
 
 class Ring_Element
 {
+  friend class Rq_Element;
+
   RepType rep;
 
   /* FFTD is defined as a pointer so each different Ring_Element
@@ -40,6 +42,9 @@ class Ring_Element
    */
 
   vector<modp> element; 
+
+  /* Careful calling this one, as FFTD will not be defined */
+  Ring_Element(RepType r=polynomial) : FFTD(0) { rep=r; }
 
   public:
 
@@ -56,15 +61,12 @@ class Ring_Element
   void allocate();
 
   void set_data(const FFT_Data& prd)   { FFTD=&prd; }
-  const FFT_Data& get_FFTD() const     { return *FFTD; }
-  const Zp_Data& get_prD() const   { return (*FFTD).get_prD(); }
-  const bigint&  get_prime() const { return (*FFTD).get_prime(); }
+  const FFT_Data& get_FFTD() const     { assert(FFTD); return *FFTD; }
+  const Zp_Data& get_prD() const   { return get_FFTD().get_prD(); }
+  const bigint&  get_prime() const { return get_FFTD().get_prime(); }
 
   void assign_zero();
   void assign_one();
-
-  /* Careful calling this one, as FFTD will not be defined */
-  Ring_Element(RepType r=polynomial) : FFTD(0) { rep=r; }
 
   Ring_Element(const FFT_Data& prd,RepType r=polynomial);
 
@@ -120,6 +122,7 @@ class Ring_Element
   template <class T>
   void from(const vector<T>& source)
   {
+    assert(source.size() == (size_t) get_FFTD().phi_m());
     from(Iterator<T>(source));
   }
 
@@ -162,7 +165,7 @@ class RingWriteIterator : public WriteConversionIterator
   RepType rep;
 public:
   RingWriteIterator(Ring_Element& element) :
-    WriteConversionIterator(element.element, element.FFTD->get_prD()),
+    WriteConversionIterator(element.element, element.get_FFTD().get_prD()),
     element(element), rep(element.rep)
   {
     element.rep = polynomial;
@@ -177,7 +180,7 @@ class RingReadIterator : public ConversionIterator
   Ring_Element element;
 public:
   RingReadIterator(const Ring_Element& element) :
-    ConversionIterator(this->element.element, element.FFTD->get_prD()),
+    ConversionIterator(this->element.element, element.get_FFTD().get_prD()),
     element(element)
   {
     this->element.change_rep(polynomial);
@@ -198,6 +201,7 @@ void Ring_Element::from(const Generator<T>& generator)
   T tmp;
   modp tmp2;
   prepare_push();
+  assert(FFTD);
   for (int i=0; i<(*FFTD).phi_m(); i++)
     {
       generator.get(tmp);

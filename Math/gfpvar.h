@@ -68,6 +68,7 @@ public:
     {
         init_field(T::pr(), montgomery);
     }
+    static void reset();
 
     static const Zp_Data& get_ZpD();
     static const bigint& pr();
@@ -147,8 +148,6 @@ public:
 
     bool operator==(const gfpvar_& other) const;
     bool operator!=(const gfpvar_& other) const;
-
-    void add(octetStream& other, int = -1);
 
     void negate();
 

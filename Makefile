@@ -82,7 +82,7 @@ CONFIG.mine:
 %.o: %.cpp
 	$(CXX) -o $@ $< $(CFLAGS) -MMD -MP -c
 
-online: Fake-Offline.x Server.x Player-Online.x Check-Offline.x emulate.x
+online: Fake-Offline.x Server.x Player-Online.x Check-Offline.x emulate.x mascot-party.x
 
 offline: $(OT_EXE) Check-Offline.x mascot-offline.x cowgear-offline.x mal-shamir-offline.x
 
@@ -116,7 +116,7 @@ mascot: mascot-party.x spdz2k mama-party.x
 ifeq ($(OS), Darwin)
 setup: mac-setup
 else
-setup: boost linux-machine-setup
+setup: maybe-boost linux-machine-setup
 endif
 
 tldr: setup
@@ -147,6 +147,7 @@ $(FHEOFFLINE): $(FHEOBJS) $(SHAREDLIB)
 	$(CXX) $(CFLAGS) -shared -o $@ $^ $(LDLIBS)
 
 static/%.x: Machines/%.o $(LIBRELEASE) $(LIBSIMPLEOT) local/lib/libcryptoTools.a local/lib/liblibOTe.a
+	$(MAKE) static-dir
 	$(CXX) -o $@ $(CFLAGS) $^ -Wl,-Map=$<.map -Wl,-Bstatic -static-libgcc -static-libstdc++ $(LIBRELEASE) -llibOTe -lcryptoTools $(LIBSIMPLEOT) $(BOOST) $(LDLIBS) -Wl,-Bdynamic -ldl
 
 static/%.x: ECDSA/%.o ECDSA/P256Element.o $(VMOBJS) $(OT) $(LIBSIMPLEOT)
@@ -295,13 +296,17 @@ deps/SimplestOT_C/ref10/Makefile:
 
 .PHONY: Programs/Circuits
 Programs/Circuits:
-	git submodule update --init Programs/Circuits
+	git submodule update --init Programs/Circuits || git clone https://github.com/mkskeller/bristol-fashion Programs/Circuits
 
 deps/libOTe/libOTe:
 	git submodule update --init --recursive deps/libOTe || git clone --recurse-submodules https://github.com/mkskeller/softspoken-implementation deps/libOTe
 boost: deps/libOTe/libOTe
 	cd deps/libOTe; \
 	python3 build.py --setup --boost --install=$(CURDIR)/local
+maybe-boost: deps/libOTe/libOTe
+	cd `mktemp -d`; \
+	PATH="$(CURDIR)/local/bin:$(PATH)" cmake $(CURDIR)/deps/libOTe || \
+	{ cd -; make boost; }
 
 OTE_OPTS += -DENABLE_SOFTSPOKEN_OT=ON -DCMAKE_CXX_COMPILER=$(CXX) -DCMAKE_INSTALL_LIBDIR=lib
 
@@ -333,11 +338,12 @@ OT/OTExtensionWithMatrix.o: $(OTE)
 endif
 
 local/lib/liblibOTe.a: deps/libOTe/libOTe
+	make maybe-boost; \
 	cd deps/libOTe; \
 	PATH="$(CURDIR)/local/bin:$(PATH)" python3 build.py --install=$(CURDIR)/local -- -DBUILD_SHARED_LIBS=0 $(OTE_OPTS) && \
 	touch ../../local/lib/liblibOTe.a
 
-$(SHARED_OTE): deps/libOTe/libOTe
+$(SHARED_OTE): deps/libOTe/libOTe maybe-boost
 	cd deps/libOTe; \
 	python3 build.py --install=$(CURDIR)/local -- -DBUILD_SHARED_LIBS=1 $(OTE_OPTS)
 
@@ -357,7 +363,7 @@ deps/simde/simde:
 	git submodule update --init deps/simde || git clone https://github.com/simd-everywhere/simde deps/simde
 
 clean-deps:
-	-rm -rf local/lib/liblibOTe.* deps/libOTe/out
+	-rm -rf local/lib/liblibOTe.* deps/libOTe/out deps/SimplestOT_C
 
 clean: clean-deps
 	-rm -f */*.o *.o */*.d *.d *.x core.* *.a gmon.out */*/*.o static/*.x *.so

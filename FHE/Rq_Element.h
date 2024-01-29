@@ -33,6 +33,10 @@ protected:
   vector<Ring_Element> a;
   int lev;
 
+  // Must be careful not to call by mistake
+  Rq_Element(RepType r0=evaluation,RepType r1=polynomial) :
+    a({r0, r1}), lev(n_mults()) {}
+
   public:
   
   int n_mults() const { return a.size() - 1; }
@@ -45,10 +49,6 @@ protected:
   void assign_zero(); 
   void assign_one(); 
   void partial_assign(const Rq_Element& e);
-
-  // Must be careful not to call by mistake
-  Rq_Element(RepType r0=evaluation,RepType r1=polynomial) :
-    a({r0, r1}), lev(n_mults()) {}
 
   // Pass in a pair of FFT_Data as a vector
   Rq_Element(const vector<FFT_Data>& prd, RepType r0 = evaluation,
@@ -63,7 +63,10 @@ protected:
   Rq_Element(const FHE_PK& pk);
 
   Rq_Element(const Ring_Element& b0,const Ring_Element& b1) :
-    a({b0, b1}), lev(n_mults()) {}
+    a({b0, b1}), lev(n_mults())
+  {
+    assert(b0.get_FFTD().get_R() == b1.get_FFTD().get_R());
+  }
 
   Rq_Element(const Ring_Element& b0) :
     a({b0}), lev(n_mults()) {}
@@ -93,8 +96,6 @@ protected:
   friend void sub(Rq_Element& ans,const Rq_Element& a,const Rq_Element& b);
   friend void mul(Rq_Element& ans,const Rq_Element& a,const Rq_Element& b);
   friend void mul(Rq_Element& ans,const Rq_Element& a,const bigint& b);
-
-  void add(octetStream& os, int = -1);
 
   template<class S>
   Rq_Element& operator+=(const vector<S>& other);
@@ -139,6 +140,8 @@ protected:
   template <class T>
   void from(const vector<T>& source, int level=-1)
     {
+      for (auto& x : a)
+        assert(source.size() == (size_t) x.get_FFTD().phi_m());
       from(Iterator<T>(source), level);
     }
 

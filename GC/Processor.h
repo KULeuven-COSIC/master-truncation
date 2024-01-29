@@ -87,6 +87,7 @@ public:
     void xorc(const ::BaseInstruction& instruction);
     void nots(const ::BaseInstruction& instruction);
     void notcb(const ::BaseInstruction& instruction);
+    void movsb(const ::BaseInstruction& instruction);
     void andm(const ::BaseInstruction& instruction);
     void and_(const vector<int>& args, bool repeat);
     void andrs(const vector<int>& args) { and_(args, true); }

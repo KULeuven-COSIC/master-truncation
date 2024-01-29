@@ -6,14 +6,17 @@
 #include "Instruction.h"
 #include "instructions.h"
 #include "Processor.h"
+#include "Memory.h"
 #include "Math/gf2n.h"
 #include "GC/instructions.h"
+
+#include "Memory.hpp"
 
 #include <iomanip>
 
 template<class cgf2n>
 void Instruction::execute_clear_gf2n(vector<cgf2n>& registers,
-        vector<cgf2n>& memory, ArithmeticProcessor& Proc) const
+        MemoryPart<cgf2n>& memory, ArithmeticProcessor& Proc) const
 {
     auto& C2 = registers;
     auto& M2C = memory;
@@ -54,7 +57,7 @@ void Instruction::gbitcom(vector<cgf2n>& registers) const
     }
 }
 
-void Instruction::execute_regint(ArithmeticProcessor& Proc, vector<Integer>& Mi) const
+void Instruction::execute_regint(ArithmeticProcessor& Proc, MemoryPart<Integer>& Mi) const
 {
     (void) Mi;
     auto& Ci = Proc.get_Ci();
@@ -122,6 +125,6 @@ ostream& operator<<(ostream& s, const Instruction& instr)
 }
 
 template void Instruction::execute_clear_gf2n(vector<gf2n_short>& registers,
-        vector<gf2n_short>& memory, ArithmeticProcessor& Proc) const;
+        MemoryPart<gf2n_short>& memory, ArithmeticProcessor& Proc) const;
 template void Instruction::execute_clear_gf2n(vector<gf2n_long>& registers,
-        vector<gf2n_long>& memory, ArithmeticProcessor& Proc) const;
+        MemoryPart<gf2n_long>& memory, ArithmeticProcessor& Proc) const;

@@ -1,5 +1,37 @@
 The changelog explains changes pulled through from the private development repository. Bug fixes and small enhancements are committed between releases and not documented here.
 
+## 0.3.8 (December 14, 2023)
+
+- Functionality for multiple nodes per party
+- Functionality to use disk space for high-level data structures
+- True division is always fixed-point division (similar to Python 3)
+- Compiler option to optimize for specific protocol
+- Cleartext permutation
+- Faster compilation and lower bytecode size
+- Functionality to output secret shares from high-level code
+- Run-time command-line arguments accessible from high-level code
+- Client connection setup specifies cleartext domain
+- Compile-time parameter for connection timeout
+- Prevent connections from timing out (@ParallelogramPal)
+- More ECDSA examples
+- More flexible multiplication instruction
+- Dot product instruction supports several operations at once
+- Example-based virtual machine explanation
+
+## 0.3.7 (August 14, 2023)
+
+- Path Oblivious Heap (@tskovlund)
+- Adjust batch and bucket size to program
+- Direct communication available in more protocols
+- Option for seed in fake preprocessing (@strieflin)
+- Lower memory usage due to improved register allocation
+- New instructions to speed up CISC compilation
+- Protocol implementation example
+- Fixed security bug: missing MAC checks in multi-threaded programs
+- Fixed security bug: race condition in MAC check
+- Fixed security bug: missing shuffling check in PS mod 2^k and Brain
+- Fixed security bug: insufficient drowning in pairwise protocols
+
 ## 0.3.6 (May 9, 2023)
 
 - More extensive benchmarking outputs

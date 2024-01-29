@@ -8,6 +8,9 @@
 #include "Math/Setup.h"
 #include "Tools/Bundle.h"
 
+#include "Instruction.hpp"
+#include "Protocols/ShuffleSacrifice.hpp"
+
 #include <iostream>
 #include <sodium.h>
 using namespace std;
@@ -28,6 +31,43 @@ BaseMachine& BaseMachine::s()
     return *singleton;
   else
     throw runtime_error("no singleton");
+}
+
+bool BaseMachine::has_program()
+{
+  return has_singleton() and not s().progs.empty();
+}
+
+int BaseMachine::edabit_bucket_size(int n_bits)
+{
+  size_t usage = 0;
+  if (has_program())
+    usage = s().progs[0].get_offline_data_used().total_edabits(n_bits);
+  return bucket_size(usage);
+}
+
+int BaseMachine::triple_bucket_size(DataFieldType type)
+{
+  size_t usage = 0;
+  if (has_program())
+    usage = s().progs[0].get_offline_data_used().files[type][DATA_TRIPLE];
+  return bucket_size(usage);
+}
+
+int BaseMachine::bucket_size(size_t usage)
+{
+  int res = OnlineOptions::singleton.bucket_size;
+
+  if (usage)
+    {
+      for (int B = res; B <= 5; B++)
+        if (ShuffleSacrifice(B).minimum_n_outputs() < usage * .9)
+          break;
+        else
+          res = B;
+    }
+
+  return res;
 }
 
 BaseMachine::BaseMachine() : nthreads(0)
@@ -67,7 +107,7 @@ void BaseMachine::load_schedule(const string& progname, bool load_bytecode)
   string threadname;
   for (int i=0; i<nprogs; i++)
     { inpf >> threadname;
-      size_t split = threadname.find(":");
+      size_t split = threadname.find_last_of(":");
       long expected = -1;
       if (split != string::npos)
         {
@@ -101,6 +141,7 @@ void BaseMachine::load_schedule(const string& progname, bool load_bytecode)
   getline(inpf, compiler);
   getline(inpf, domain);
   getline(inpf, relevant_opts);
+  getline(inpf, security);
   inpf.close();
 }
 
@@ -160,17 +201,19 @@ string BaseMachine::memory_filename(const string& type_short, int my_number)
 
 string BaseMachine::get_domain(string progname)
 {
-  if (singleton)
-  {
-    assert(s().progname == progname);
-    return s().domain;
-  }
+  return get_basics(progname).domain;
+}
 
-  assert(not singleton);
+BaseMachine BaseMachine::get_basics(string progname)
+{
+  if (singleton and s().progname == progname)
+    return s();
+
+  auto backup = singleton;
   BaseMachine machine;
-  singleton = 0;
+  singleton = backup;
   machine.load_schedule(progname, false);
-  return machine.domain;
+  return machine;
 }
 
 int BaseMachine::ring_size_from_schedule(string progname)
@@ -198,6 +241,15 @@ bigint BaseMachine::prime_from_schedule(string progname)
   string domain = get_domain(progname);
   if (domain.substr(0, 2).compare("p:") == 0)
     return bigint(domain.substr(2));
+  else
+    return 0;
+}
+
+int BaseMachine::security_from_schedule(string progname)
+{
+  string sec = get_basics(progname).security;
+  if (sec.substr(0, 4).compare("sec:") == 0)
+    return stoi(sec.substr(4));
   else
     return 0;
 }

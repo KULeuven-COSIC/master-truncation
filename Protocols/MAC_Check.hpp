@@ -98,6 +98,7 @@ void Tree_MAC_Check<U>::init_open(const Player&, int n)
 template<class U>
 void Tree_MAC_Check<U>::prepare_open(const U& secret, int)
 {
+  assert(U::mac_type::invertible);
   this->values.push_back(secret.get_share());
   macs.push_back(secret.get_mac());
 }
@@ -175,7 +176,7 @@ void MAC_Check_<U>::Check(const Player& P)
           for (auto& os : bundle)
             if (&os != &bundle.mine)
               delta += os.get<typename U::mac_type>();
-          if (not delta.is_zero())
+          if (delta != 0)
             throw mac_fail();
         }
     }
@@ -193,8 +194,6 @@ void MAC_Check_<U>::Check(const Player& P)
       typename U::mac_type a,gami,temp;
       typename U::mac_type::Scalar h;
       vector<typename U::mac_type> tau(P.num_players());
-      a.assign_zero();
-      gami.assign_zero();
       for (int i=0; i<popen_cnt; i++)
         {
           h.almost_randomize(G);
@@ -216,10 +215,10 @@ void MAC_Check_<U>::Check(const Player& P)
       //cerr << "\tFinal Check" << endl;
 
       typename U::mac_type t;
-      t.assign_zero();
       for (int i=0; i<P.num_players(); i++)
         { t += tau[i]; }
-      if (!t.is_zero()) { throw mac_fail(); }
+      if (t != 0)
+        throw mac_fail();
     }
 
   vals.erase(vals.begin(), vals.begin() + popen_cnt);
@@ -344,7 +343,7 @@ Direct_MAC_Check<T>::Direct_MAC_Check(const typename T::mac_key_type::Scalar& ai
 
 template<class T>
 Direct_MAC_Check<T>::Direct_MAC_Check(const typename T::mac_key_type::Scalar& ai) :
-    MAC_Check_<T>(ai)
+    Tree_MAC_Check<T>(ai), MAC_Check_<T>(ai)
 {
   open_counter = 0;
 }
@@ -376,6 +375,7 @@ void Direct_MAC_Check<T>::pre_exchange(const Player& P)
 
   for (auto& x : this->values)
     x.pack(oss[P.my_num()]);
+  oss[P.my_num()].append(0);
 }
 
 
@@ -404,6 +404,7 @@ void Direct_MAC_Check<T>::init_open(const Player& P, int n)
 template<class T>
 void Direct_MAC_Check<T>::prepare_open(const T& secret, int)
 {
+  assert(T::mac_type::invertible);
   this->values.push_back(secret.get_share());
   this->macs.push_back(secret.get_mac());
 }

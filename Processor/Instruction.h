@@ -14,6 +14,7 @@ using namespace std;
 template<class sint, class sgf2n> class Machine;
 template<class sint, class sgf2n> class Processor;
 template<class T> class SubProcessor;
+template<class T> class MemoryPart;
 class ArithmeticProcessor;
 class SwitchableOutput;
 
@@ -71,6 +72,7 @@ enum
     USE_EDABIT = 0xE5,
     USE_MATMUL = 0x1F,
     ACTIVE = 0xE9,
+    CMDLINEARG = 0xEB,
     // Addition
     ADDC = 0x20,
     ADDS = 0x21,
@@ -86,6 +88,8 @@ enum
     SUBCFI = 0x2B,
     SUBSFI = 0x2C,
     PREFIXSUMS = 0x2D,
+    PICKS = 0x2E,
+    CONCATS = 0x2F,
     // Multiplication/division/other arithmetic
     MULC = 0x30,
     MULM = 0x31,
@@ -150,7 +154,7 @@ enum
     LISTEN = 0x6c,
     ACCEPTCLIENTCONNECTION = 0x6d,
     CLOSECLIENTCONNECTION = 0x6e,
-    READCLIENTPUBLICKEY = 0x6f,
+    INITCLIENTCONNECTION = 0x6f,
     // Bitwise logic
     ANDC = 0x70,
     XORC = 0x71,
@@ -196,6 +200,7 @@ enum
     PRINTREG = 0XB1,
     RAND = 0xB2,
     PRINTREGPLAIN = 0xB3,
+    PRINTREGPLAINS = 0xEA,
     PRINTCHR = 0xB4,
     PRINTSTR = 0xB5,
     PUBINPUT = 0xB6,
@@ -344,6 +349,7 @@ protected:
   int r[4];           // Fixed parameter registers
   size_t n;             // Possible immediate value
   vector<int>  start; // Values for a start/stop open
+  string str;
 
 public:
   virtual ~BaseInstruction() {};
@@ -386,7 +392,7 @@ public:
   void execute(Processor<sint, sgf2n>& Proc) const;
 
   template<class cgf2n>
-  void execute_clear_gf2n(vector<cgf2n>& registers, vector<cgf2n>& memory,
+  void execute_clear_gf2n(vector<cgf2n>& registers, MemoryPart<cgf2n>& memory,
       ArithmeticProcessor& Proc) const;
 
   template<class cgf2n>
@@ -394,7 +400,7 @@ public:
   template<class cgf2n>
   void gbitcom(vector<cgf2n>& registers) const;
 
-  void execute_regint(ArithmeticProcessor& Proc, vector<Integer>& Mi) const;
+  void execute_regint(ArithmeticProcessor& Proc, MemoryPart<Integer>& Mi) const;
 
   void shuffle(ArithmeticProcessor& Proc) const;
   void bitdecint(ArithmeticProcessor& Proc) const;

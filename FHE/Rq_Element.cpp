@@ -14,13 +14,16 @@ Rq_Element::Rq_Element(const vector<FFT_Data>& prd, RepType r0, RepType r1)
     if (prd.size() > 0)
         a.push_back({prd[0], r0});
     if (prd.size() > 1)
+    {
+        assert(prd[0].get_R() == prd[1].get_R());
         a.push_back({prd[1], r1});
+    }
     lev = n_mults();
 }
 
 void Rq_Element::set_data(const vector<FFT_Data>& prd)
 {
-    a.resize(prd.size());
+    a.resize(prd.size(), {});
     for(size_t i = 0; i < a.size(); i++)
         a[i].set_data(prd[i]);
     lev=n_mults();
@@ -47,7 +50,7 @@ void Rq_Element::assign_one()
 void Rq_Element::partial_assign(const Rq_Element& other)
 {
 	lev=other.lev;
-	a.resize(other.a.size());
+	a.resize(other.a.size(), {});
 }
 
 void Rq_Element::negate()
@@ -109,13 +112,6 @@ void mul(Rq_Element& ans,const Rq_Element& a,const bigint& b)
   }
 }
 
-void Rq_Element::add(octetStream& os, int)
-{
-  Rq_Element tmp(*this);
-  tmp.unpack(os);
-  *this += tmp;
-}
-
 void Rq_Element::randomize(PRNG& G,int l)
 {
   set_level(l);
@@ -155,6 +151,7 @@ void Rq_Element::to_vec_bigint(vector<bigint>& v) const
   if (lev==1)
     { vector<bigint> v1;
       a[1].to_vec_bigint(v1);
+      assert(v.size() == v1.size());
       bigint p0=a[0].get_prime();
       bigint p1=a[1].get_prime();
       bigint p0i,lambda,Q=p0*p1;

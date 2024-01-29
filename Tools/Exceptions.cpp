@@ -90,3 +90,26 @@ gf2n_not_supported::gf2n_not_supported(int n, string options) :
                         + (options.empty() ? "" : ", options are " + options))
 {
 }
+
+setup_error::setup_error(const string& error) :
+        runtime_error(error)
+{
+}
+
+prep_setup_error::prep_setup_error(const string& error, int nplayers,
+        const string& fake_opts) :
+        setup_error(
+                "Something is wrong with the preprocessing data on disk: "
+                        + error
+                        + "\nHave you run the right program for generating it, "
+                                "such as './Fake-Offline.x "
+                        + to_string(nplayers) + fake_opts + "'?")
+{
+}
+
+insufficient_shares::insufficient_shares(int expected, int actual, exception& e) :
+        runtime_error(
+                "expected " + to_string(expected) + " shares but only got "
+                        + to_string(actual) + " (" + e.what() + ")")
+{
+}

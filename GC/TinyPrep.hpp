@@ -32,9 +32,11 @@ void TinierSharePrep<T>::buffer_secret_triples()
     assert(triple_generator != 0);
     params.generateBits = false;
     vector<array<T, 3>> triples;
-    TripleShuffleSacrifice<T> sacrifice;
+    TripleShuffleSacrifice<T> sacrifice(DATA_GF2);
     size_t required;
-    required = sacrifice.minimum_n_inputs_with_combining();
+    required = sacrifice.minimum_n_inputs_with_combining(
+            BaseMachine::batch_size<T>(DATA_TRIPLE));
+    triple_generator->set_batch_size(DIV_CEIL(required, 64));
     while (triples.size() < required)
     {
         triple_generator->generatePlainTriples();

@@ -1,5 +1,5 @@
-#ifndef _Data
-#define _Data
+#ifndef NETWORKING_DATA_H_
+#define NETWORKING_DATA_H_
 
 #include <string.h>
 

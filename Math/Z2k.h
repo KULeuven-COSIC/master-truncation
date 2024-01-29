@@ -52,7 +52,7 @@ public:
 	static int size() { return N_BYTES; }
 	static int size_in_limbs() { return N_WORDS; }
 	static int size_in_bits() { return size() * 8; }
-	static int length() { return size_in_bits(); }
+	static int length() { return n_bits(); }
 	static int n_bits() { return N_BITS; }
 	static int t() { return 0; }
 
@@ -109,6 +109,11 @@ public:
 	void assign(const void* buffer) { avx_memcpy(a, buffer, N_BYTES); normalize(); }
 	void assign(int x) { *this = x; }
 
+	/**
+	 * Get 64-bit part.
+	 *
+	 * @param i return word containing 64*i- to 64*i+63-least significant bits
+	 */
 	mp_limb_t get_limb(int i) const { return a[i]; }
 	bool get_bit(int i) const;
 
@@ -150,8 +155,6 @@ public:
 
 	bool operator==(const Z2<K>& other) const;
 	bool operator!=(const Z2<K>& other) const { return not (*this == other); }
-
-	void add(octetStream& os, int = -1) { *this += (os.consume(size())); }
 
 	Z2 lazy_add(const Z2& x) const;
 	Z2 lazy_mul(const Z2& x) const;

@@ -87,6 +87,7 @@ LDLIBS = -lgmpxx -lgmp -lsodium $(MY_LDLIBS)
 LDLIBS += $(BREW_LDLIBS)
 LDLIBS +=  -Wl,-rpath -Wl,$(CURDIR)/local/lib -L$(CURDIR)/local/lib
 LDLIBS += -lboost_system -lssl -lcrypto
+LDLIBS += -lboost_filesystem -lboost_iostreams
 
 CFLAGS += -I./local/include
 

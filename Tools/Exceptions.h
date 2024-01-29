@@ -284,4 +284,22 @@ public:
     gf2n_not_supported(int n, string options = "");
 };
 
+class setup_error : public runtime_error
+{
+public:
+    setup_error(const string& error);
+};
+
+class prep_setup_error : public setup_error
+{
+public:
+    prep_setup_error(const string& error, int nplayers, const string& fake_opts);
+};
+
+class insufficient_shares : public runtime_error
+{
+public:
+    insufficient_shares(int expected, int actual, exception& e);
+};
+
 #endif

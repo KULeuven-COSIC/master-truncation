@@ -344,8 +344,7 @@ class Output(NoVariableLayer):
         if self.approx:
             return approx_sigmoid(self.X.get_vector(base, size), self.approx)
         else:
-            return sigmoid_from_e_x(self.X.get_vector(base, size),
-                                    self.e_x.get_vector(base, size))
+            return sigmoid(self.X.get_vector(base, size))
 
     def backward(self, batch):
         N = len(batch)
@@ -402,13 +401,19 @@ class Output(NoVariableLayer):
 class LinearOutput(NoVariableLayer):
     n_outputs = -1
 
-    def __init__(self, N):
-        self.X = sfix.Array(N)
-        self.Y = sfix.Array(N)
-        self.nabla_X = sfix.Array(N)
+    def __init__(self, N, n_targets=1):
+        if n_targets == 1:
+            shape = N,
+        else:
+            shape = N, n_targets
+        self.X = sfix.Tensor(shape)
+        self.Y = sfix.Tensor(shape)
+        self.nabla_X = sfix.Tensor(shape)
         self.l = MemValue(sfix(0))
+        self.d_out = n_targets
 
     def _forward(self, batch):
+        assert len(self.X.shape) == 1
         N = len(batch)
         guess = self.X.get_vector(0, N)
         truth = self.Y.get(batch.get_vector(0, N))
@@ -427,7 +432,7 @@ class LinearOutput(NoVariableLayer):
         return self.l.reveal()
 
     def eval(self, size, base=0, top=False):
-        return self.X.get_vector(base, size)
+        return self.X.get_part(base, size)
 
 class MultiOutputBase(NoVariableLayer):
     def __init__(self, N, d_out, approx=False, debug=False):
@@ -827,10 +832,10 @@ class Dense(DenseBase):
         self.W.randomize(-r, r, n_threads=self.n_threads)
         self.b.assign_all(0)
 
-    def input_from(self, player, raw=False):
-        self.W.input_from(player, raw=raw)
+    def input_from(self, player, **kwargs):
+        self.W.input_from(player, **kwargs)
         if self.input_bias:
-            self.b.input_from(player, raw=raw)
+            self.b.input_from(player, **kwargs)
 
     def compute_f_input(self, batch):
         N = len(batch)
@@ -839,7 +844,7 @@ class Dense(DenseBase):
             prod = MultiArray([N, self.d, self.d_out], sfix)
         else:
             prod = self.f_input
-        max_size = program.Program.prog.budget // self.d_out
+        max_size = get_program().budget // self.d_out
         @multithread(self.n_threads, N, max_size)
         def _(base, size):
             X_sub = sfix.Matrix(self.N, self.d_in, address=self.X.address)
@@ -1043,16 +1048,16 @@ class ElementWiseLayer(NoVariableLayer):
         self.inputs = inputs
 
     def f_part(self, base, size):
-        return self.f(self.X.get_part_vector(base, size))
+        return self.f(self.X.get_vector(base, size))
 
     def f_prime_part(self, base, size):
         return self.f_prime(self.Y.get_vector(base, size))
 
     def _forward(self, batch=[0]):
         n_per_item = reduce(operator.mul, self.X.sizes[1:])
-        @multithread(self.n_threads, len(batch), max(1, 1000 // n_per_item))
+        @multithread(self.n_threads, len(batch) * n_per_item)
         def _(base, size):
-            self.Y.assign_part_vector(self.f_part(base, size), base)
+            self.Y.assign_vector(self.f_part(base, size), base)
 
         if self.debug_output:
             name = self
@@ -1093,19 +1098,16 @@ class Relu(ElementWiseLayer):
 
     :param shape: input/output shape (tuple/list of int)
     """
-    f = staticmethod(relu)
-    f_prime = staticmethod(relu_prime)
     prime_type = sint
-    comparisons = None
 
     def __init__(self, shape, inputs=None):
         super(Relu, self).__init__(shape)
         self.comparisons = MultiArray(shape, sint)
 
     def f_part(self, base, size):
-        x = self.X.get_part_vector(base, size)
+        x = self.X.get_vector(base, size)
         c = x > 0
-        self.comparisons.assign_part_vector(c, base)
+        self.comparisons.assign_vector(c, base)
         return c.if_else(x, 0)
 
     def f_prime_part(self, base, size):
@@ -1339,12 +1341,12 @@ class FusedBatchNorm(Layer):
         self.bias = sfix.Array(shape[3])
         self.inputs = inputs
 
-    def input_from(self, player, raw=False):
-        self.weights.input_from(player, raw=raw)
-        self.bias.input_from(player, raw=raw)
+    def input_from(self, player, **kwargs):
+        self.weights.input_from(player, **kwargs)
+        self.bias.input_from(player, **kwargs)
         tmp = sfix.Array(len(self.bias))
-        tmp.input_from(player, raw=raw)
-        tmp.input_from(player, raw=raw)
+        tmp.input_from(player, **kwargs)
+        tmp.input_from(player, **kwargs)
 
     def _forward(self, batch=[0]):
         assert len(batch) == 1
@@ -1640,11 +1642,11 @@ class ConvBase(BaseLayer):
              self.bias_shape, self.Y.sizes, self.stride, repr(self.padding),
              self.tf_weight_format)
 
-    def input_from(self, player, raw=False):
+    def input_from(self, player, **kwargs):
         self.input_params_from(player)
-        self.weights.input_from(player, budget=100000, raw=raw)
+        self.weights.input_from(player, budget=100000, **kwargs)
         if self.input_bias:
-            self.bias.input_from(player, raw=raw)
+            self.bias.input_from(player, **kwargs)
 
     def output_weights(self):
         self.weights.print_reveal_nested()
@@ -1718,12 +1720,9 @@ class Conv2d(ConvBase):
         padding_h, padding_w = self.padding
 
         if self.use_conv2ds:
-            n_parts = max(1, round((self.n_threads or 1) / n_channels_out))
-            while len(batch) % n_parts != 0:
-                n_parts -= 1
-            print('Convolution in %d parts' % n_parts)
-            part_size = len(batch) // n_parts
-            @for_range_multithread(self.n_threads, 1, [n_parts, n_channels_out])
+            part_size = 1
+            @for_range_opt_multithread(self.n_threads,
+                                       [len(batch), n_channels_out])
             def _(i, j):
                 inputs = self.X.get_slice_vector(
                     batch.get_part(i * part_size, part_size))
@@ -2352,7 +2351,7 @@ class Optimizer:
             res = sfix.Matrix(len(data), self.layers[-1].d_out)
         def f(start, batch_size, batch):
             batch.assign_vector(regint.inc(batch_size, start))
-            self.forward(batch=batch, run_last=not top)
+            self.forward(batch=batch, run_last=False)
             part = self.layers[-1].eval(batch_size, top=top)
             res.assign_part_vector(part.get_vector(), start)
         self.run_in_batches(f, data, batch_size or len(self.layers[1].X))
@@ -2539,6 +2538,10 @@ class Optimizer:
                     loss = self.layers[-1].average_loss(N)
                     res = (loss < stop_on_loss) * (loss >= -1)
                     self.stopped_on_loss.write(1 - res)
+                    print_ln_if(
+                        self.stopped_on_loss,
+                        'aborting epoch because loss is outside range: %s',
+                        loss)
                     return res
             if self.print_losses:
                 print_ln()
@@ -2577,7 +2580,7 @@ class Optimizer:
         loss = MemValue(sfix(0))
         def f(start, batch_size, batch):
             batch.assign_vector(regint.inc(batch_size, start))
-            self.forward(batch=batch)
+            self.forward(batch=batch, run_last=False)
             part_truth = truth.get_part(start, batch_size)
             n_correct.iadd(
                 self.layers[-1].reveal_correctness(batch_size, part_truth))
@@ -2676,7 +2679,7 @@ class Optimizer:
                 batch = Array.create_from(regint.inc(batch_size))
                 self.forward(batch=batch, training=True)
                 self.backward(batch=batch)
-                self.update(0, batch=batch)
+                self.update(0, batch=batch, i_batch=0)
             return
         @for_range(n_runs)
         def _(i):
@@ -2729,6 +2732,8 @@ class Optimizer:
             if depreciation:
                 self.gamma.imul(depreciation)
                 print_ln('reducing learning rate to %s', self.gamma)
+            print_ln_if(self.stopped_on_low_loss,
+                        'aborting run because of low loss')
             return 1 - self.stopped_on_low_loss
         if self.missing_newline:
             print_ln('')
@@ -3213,13 +3218,15 @@ class keras:
                     batch_size = min(batch_size, self.batch_size)
                 return self.opt.eval(x, batch_size=batch_size)
 
-def layers_from_torch(sequence, data_input_shape, batch_size, input_via=None):
+def layers_from_torch(sequence, data_input_shape, batch_size, input_via=None,
+                      regression=False):
     """ Convert a PyTorch Sequential object to MP-SPDZ layers.
 
     :param sequence: PyTorch Sequential object
     :param data_input_shape: input shape (list of four int)
     :param batch_size: batch size (int)
     :param input_via: player to input model data via (default: don't)
+    :param regression: regression (default: classification)
 
     """
     layers = []
@@ -3300,7 +3307,9 @@ def layers_from_torch(sequence, data_input_shape, batch_size, input_via=None):
 
     input_shape = data_input_shape + [1] * (4 - len(data_input_shape))
     process(sequence)
-    if layers[-1].d_out == 1:
+    if regression:
+        layers.append(LinearOutput(data_input_shape[0], layers[-1].d_out))
+    elif layers[-1].d_out == 1:
         layers.append(Output(data_input_shape[0]))
     else:
         layers.append(MultiOutput(data_input_shape[0], layers[-1].d_out))

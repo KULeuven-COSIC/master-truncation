@@ -237,7 +237,8 @@ of linear regression.
 PyTorch interface
 =================
 
-MP-SPDZ supports importing sequential models from PyTorch as shown in
+MP-SPDZ supports importing sequential models from PyTorch using
+:py:func:`~Compiler.ml.layers_from_torch` as shown in
 this code snippet in ``torch_mnist_dense.mpc``::
 
   import torch.nn as nn
@@ -442,7 +443,7 @@ and used in MP-SPDZ::
 This outputs the accuracy of the network. You can use
 :py:func:`~Compiler.ml.Optimizer.eval` instead of
 :py:func:`~Compiler.ml.Optimizer.reveal_correctness` to retrieve
-probability distributions or top guessess (the latter with ``top=True``)
+probability distributions or top guesses (the latter with ``top=True``)
 for any sample data.
 
 
