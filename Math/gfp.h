@@ -189,12 +189,8 @@ class gfp_ : public ValueInterface
   bool operator!=(const gfp_& y) const { return !equal(y); }
 
   // x+y
-  void add(octetStream& os, int = -1)
-    { add(os.consume(size())); }
   void add(const gfp_& x,const gfp_& y)
     { ZpD.Add<L>(a.x,x.a.x,y.a.x); }
-  void add(void* x)
-    { ZpD.Add<L>(a.x,a.x,(mp_limb_t*)x); }
   void sub(const gfp_& x,const gfp_& y)
     { ZpD.Sub<L>(a.x,x.a.x,y.a.x); }
   // = x * y

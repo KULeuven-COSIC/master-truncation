@@ -20,7 +20,7 @@ correct signature.
 Basic types
 -----------
 
-All basic can be used as vectors, that is one instance representing
+All basic types can be used as vectors, that is one instance representing
 several values, with all operations being executed element-wise. For
 example, the following computes ten multiplications of integers input
 by party 0 and 1::
@@ -588,7 +588,7 @@ class _secret_structure(_structure):
 
     @classmethod
     def input_tensor_via(cls, player, content=None, shape=None, binary=True,
-                         one_hot=False):
+                         one_hot=False, skip_input=False, n_bytes=None):
         """
         Input tensor-like data via a player. This overwrites the input
         file for the relevant player. The following returns an
@@ -630,7 +630,10 @@ class _secret_structure(_structure):
                     else:
                         t = numpy.single
                 else:
-                    t = numpy.int64
+                    if n_bytes == 1:
+                        t = numpy.int8
+                    else:
+                        t = numpy.int64
                 if one_hot:
                     content = numpy.eye(content.max() + 1)[content]
                 content = content.astype(t)
@@ -666,9 +669,10 @@ class _secret_structure(_structure):
             if requested_shape is not None and \
                list(shape) != list(requested_shape):
                 raise CompilerError('content contradicts shape')
-        res = cls.Tensor(shape)
-        res.input_from(player, binary=binary)
-        return res
+        if not skip_input:
+            res = cls.Tensor(shape)
+            res.input_from(player, binary=binary, n_bytes=n_bytes)
+            return res
 
 class _vec(Tape._no_truth):
     def link(self, other):
@@ -680,6 +684,13 @@ class _register(Tape.Register, _number, _structure):
     @staticmethod
     def n_elements():
         return 1
+
+    @classmethod
+    def new_vector(cls, size):
+        return cls(size=size)
+
+    def vector_size(self):
+        return self.size
 
     @vectorized_classmethod
     def conv(cls, val):
@@ -707,7 +718,7 @@ class _register(Tape.Register, _number, _structure):
             except AttributeError:
                 try:
                     return type(val)(cls.hard_conv(v) for v in val)
-                except TypeError:
+                except (TypeError, CompilerError):
                     pass
         return cls(val)
 
@@ -756,11 +767,11 @@ class _register(Tape.Register, _number, _structure):
         return sum(cls.conv(b) << i for i,b in enumerate(bits))
 
     @classmethod
-    def malloc(cls, size, creator_tape=None):
+    def malloc(cls, size, creator_tape=None, **kwargs):
         """ Allocate memory (statically).
 
         :param size: compile-time (int) """
-        return program.malloc(size, cls, creator_tape=creator_tape)
+        return program.malloc(size, cls, creator_tape=creator_tape, **kwargs)
 
     @classmethod
     def free(cls, addr):
@@ -783,7 +794,11 @@ class _register(Tape.Register, _number, _structure):
                 else:
                     self[i].load_other(x)
         elif val is not None:
-            self.load_other(val)
+            try:
+                self.load_other(val)
+            except:
+                raise CompilerError(
+                    "cannot convert '%s' to '%s'" % (type(val), type(self)))
 
     def _new_by_number(self, i, size=1):
         res = type(self)(size=size)
@@ -943,16 +958,15 @@ class _clear(_arithmetic_register):
         return self.clear_op(other, subc, subcfi, True)
     __rsub__.__doc__ = __sub__.__doc__
 
-    def __truediv__(self, other):
+    def field_div(self, other):
         """ Field division of public values. Not available for
         computation modulo a power of two.
 
         :param other: convertible type (at least same as :py:obj:`self` and regint/int) """
-        return self.clear_op(other, divc, divci)
-
-    def __rtruediv__(self, other):
-        return self.coerce_op(other, divc, True)
-    __rtruediv__.__doc__ = __truediv__.__doc__
+        try:
+            return other._rfield_div(self)
+        except AttributeError:
+            return self.clear_op(other, divc, divci)
 
     def __and__(self, other):
         """ Bit-wise AND of public values.
@@ -1106,6 +1120,20 @@ class cint(_clear, _int):
 
     def __rfloordiv__(self, other):
         return self.coerce_op(other, floordivc, True)
+
+    def __truediv__(self, other):
+        """ Clear fixed-point division.
+
+        :param other: any compatible type """
+        if isinstance(other, cint):
+            return other.__rtruediv__(self)
+        try:
+            return cfix._new(self) / cfix._new(cint(other))
+        except:
+            return NotImplemented
+
+    def __rtruediv__(self, other):
+        return cfix._new(other) / cfix._new(self)
 
     @vectorize
     def less_than(self, other, bit_length):
@@ -1347,6 +1375,11 @@ class cgf2n(_clear, _gf2n):
     def __neg__(self):
         """ Identity. """
         return self
+
+    __truediv__ = _clear.field_div
+
+    def __rtruediv__(self, other):
+        return self.coerce_op(other, divc, True)
 
     @vectorize
     def __invert__(self):
@@ -1594,8 +1627,14 @@ class regint(_register, _int):
         return self.int_op(other, divint, True)
     __rfloordiv__.__doc__ = __floordiv__.__doc__
 
-    __truediv__ = __floordiv__
-    __rtruediv__ = __rfloordiv__
+    def __truediv__(self, other):
+        if isinstance(other, _gf2n):
+            return NotImplemented
+        else:
+            return cint(self) / other
+
+    def __rtruediv__(self, other):
+        return other / cint(self)
 
     def __mod__(self, other):
         """ Clear modulo computation.
@@ -1603,7 +1642,7 @@ class regint(_register, _int):
         :param other: regint/cint/int """
         if util.is_constant(other) and other >= 2 ** 64:
             return self
-        return self - (self / other) * other
+        return self - (self // other) * other
 
     def __rmod__(self, other):
         """ Clear modulo computation.
@@ -1661,7 +1700,7 @@ class regint(_register, _int):
 
     def __rshift__(self, other):
         if isinstance(other, int):
-            return self / 2**other
+            return self // 2**other
         else:
             return self.cint_op(other, operator.rshift)
 
@@ -1793,6 +1832,9 @@ class localint(Tape._no_truth):
     __eq__ = lambda self, other: localint(self._v == other)
     __ne__ = lambda self, other: localint(self._v != other)
 
+    __add__ = lambda self, other: localint(self._v + other)
+    __radd__ = lambda self, other: localint(self._v + other)
+
 class personal(Tape._no_truth):
     """ Value known to one player. Supports operations with public
     values and personal values known to the same player. Can be used
@@ -1812,7 +1854,7 @@ class personal(Tape._no_truth):
         self._v = value
 
     @classmethod
-    def read_int(cls, player):
+    def read_int(cls, player, n_bytes=None):
         """ Read integer from
         ``Player-Data/Input-Binary-P<player>-<threadnum>`` only on
         party :py:obj:`player`.
@@ -1822,7 +1864,7 @@ class personal(Tape._no_truth):
 
         """
         tmp = cint()
-        fixinput(player, tmp, 0, 0)
+        fixinput(player, tmp, n_bytes or 0, 0)
         return cls(player, tmp)
 
     @classmethod
@@ -2229,7 +2271,7 @@ class _secret(_arithmetic_register, _secret_structure):
         return self.secret_op(other, subs, submr, subsfi, True)
     __rsub__.__doc__ = __sub__.__doc__
 
-    def __truediv__(self, other):
+    def field_div(self, other):
         """ Secret field division.
 
         :param other: any compatible type """
@@ -2237,13 +2279,12 @@ class _secret(_arithmetic_register, _secret_structure):
             one = self.clear_type(1, size=other.size)
         except AttributeError:
             one = self.clear_type(1)
-        return self * (one / other)
+        return self * one.field_div(other)
 
     @vectorize
-    def __rtruediv__(self, other):
+    def _rfield_div(self, other):
         a,b = self.get_random_inverse()
-        return other * a / (a * self).reveal()
-    __rtruediv__.__doc__ = __truediv__.__doc__
+        return other * a.field_div((a * self).reveal())
 
     @set_instruction_type
     @vectorize
@@ -2311,8 +2352,8 @@ class sint(_secret, _int):
 
     The following operations work as expected in the computation
     domain (modulo a prime or a power of two): ``+, -, *``. ``/``
-    denotes the field division modulo a prime. It will reveal if the
-    divisor is zero. Comparisons operators (``==, !=, <, <=, >, >=``)
+    denotes a fixed-point division.
+    Comparisons operators (``==, !=, <, <=, >, >=``)
     assume that the element in the computation domain represents a
     signed integer in a restricted range, see below. The same holds
     for ``abs()``, shift operators (``<<, >>``), modulo (``%``), and
@@ -2398,14 +2439,14 @@ class sint(_secret, _int):
         return res
 
     @vectorized_classmethod
-    def get_input_from(cls, player, binary=False):
+    def get_input_from(cls, player, binary=False, n_bytes=None):
         """ Secret input.
 
         :param player: public (regint/cint/int)
         :param size: vector size (int, default 1)
         """
         if binary:
-            return cls(personal.read_int(player))
+            return cls(personal.read_int(player, n_bytes=n_bytes))
         else:
             res = cls()
             inputmixed('int', res, player)
@@ -2541,6 +2582,12 @@ class sint(_secret, _int):
         writesockets(client_id, message_type, values[0].size, *values)
 
     @vectorize
+    def write_fully_to_socket(self, client_id,
+                              message_type=ClientMessageType.NoType):
+        """ Send full secret to socket """
+        writesockets(client_id, message_type, self.size, self)
+
+    @vectorize
     def write_share_to_socket(self, client_id, message_type=ClientMessageType.NoType):
         """ Send only share to socket """
         writesocketshare(client_id, message_type, self.size, self)
@@ -2557,7 +2604,9 @@ class sint(_secret, _int):
 
     @classmethod
     def read_from_file(cls, start, n_items):
-        """ Read shares from ``Persistence/Transactions-P<playerno>.data``.
+        """ Read shares from
+        ``Persistence/Transactions-P<playerno>.data``. See :ref:`this
+        section <persistence>` for details on the data format.
 
         :param start: starting position in number of shares from beginning (int/regint/cint)
         :param n_items: number of items (int)
@@ -2572,7 +2621,8 @@ class sint(_secret, _int):
     @staticmethod
     def write_to_file(shares, position=None):
         """ Write shares to ``Persistence/Transactions-P<playerno>.data``
-        (appending at the end).
+        (appending at the end). See :ref:`this section <persistence>`
+        for details on the data format.
 
         :param shares: (list or iterable of sint)
         :param position: start position (int/regint/cint),
@@ -2641,7 +2691,7 @@ class sint(_secret, _int):
         res = sintbit()
         comparison.LTZ(res, self - other,
                        (bit_length or program.bit_length) + 1,
-                       security or program.security)
+                       security)
         return res
 
     @read_mem_value
@@ -2651,7 +2701,7 @@ class sint(_secret, _int):
         res = sintbit()
         comparison.LTZ(res, other - self,
                        (bit_length or program.bit_length) + 1,
-                       security or program.security)
+                       security)
         return res
 
     @read_mem_value
@@ -2670,7 +2720,7 @@ class sint(_secret, _int):
     def __eq__(self, other, bit_length=None, security=None):
         return sintbit.conv(
             floatingpoint.EQZ(self - other, bit_length or program.bit_length,
-                              security or program.security))
+                              security))
 
     @read_mem_value
     @type_comp
@@ -2709,7 +2759,6 @@ class sint(_secret, _int):
         :param bit_length: bit length of input (default: global bit length)
         """
         bit_length = bit_length or program.bit_length
-        security = security or program.security
         if isinstance(m, int):
             if m == 0:
                 return 0
@@ -2737,7 +2786,7 @@ class sint(_secret, _int):
         :param bit_length: bit length of input (default: global bit length)
         """
         return floatingpoint.Pow2(self, bit_length or program.bit_length, \
-                                      security or program.security)
+                                      security)
 
     def __lshift__(self, other, bit_length=None, security=None):
         """ Secret left shift.
@@ -2756,7 +2805,6 @@ class sint(_secret, _int):
         :param bit_length: bit length of input (default: global bit length)
         """
         bit_length = bit_length or program.bit_length
-        security = security or program.security
         if isinstance(other, int):
             if other == 0:
                 return self
@@ -2783,7 +2831,7 @@ class sint(_secret, _int):
         """ Secret right shift.
 
         :param other: secret or public integer (sint/cint/regint/int) of globale bit length if secret """
-        return floatingpoint.Trunc(other, program.bit_length, self, program.security)
+        return floatingpoint.Trunc(other, program.bit_length, self)
 
     @vectorize
     def bit_decompose(self, bit_length=None, security=None, maybe_mixed=False):
@@ -2791,7 +2839,7 @@ class sint(_secret, _int):
         if bit_length == 0:
             return []
         bit_length = bit_length or program.bit_length
-        assert program.security == security or program.security
+        program.non_linear.check_security(security)
         return program.non_linear.bit_dec(self, bit_length, bit_length,
                                           maybe_mixed)
 
@@ -2815,7 +2863,6 @@ class sint(_secret, _int):
         :param kappa: statistical security parameter (int)
         :param nearest: bool
         :param signed: bool """
-        kappa = kappa or program.security
         secret = isinstance(m, sint)
         if nearest:
             if secret:
@@ -2830,6 +2877,20 @@ class sint(_secret, _int):
     def Norm(self, k, f, kappa=None, simplex_flag=False):
         return library.Norm(self, k, f, kappa, simplex_flag)
 
+    def __truediv__(self, other):
+        """ Secret fixed-point division.
+
+        :param other: any compatible type """
+        if isinstance(other, sint):
+            return other.__rtruediv__(self)
+        try:
+            return sfix._new(self) / cfix._new(cint(other), f=sfix.f, k=sfix.k)
+        except:
+            return NotImplemented
+
+    def __rtruediv__(self, other):
+        return sfix._new(other) / sfix._new(self)
+
     @vectorize
     def int_div(self, other, bit_length=None, security=None):
         """ Secret integer division. Note that the domain bit length
@@ -2839,7 +2900,7 @@ class sint(_secret, _int):
         :param bit_length: bit length of input (default: global bit length)
         """
         k = bit_length or program.bit_length
-        kappa = security or program.security
+        kappa = security
         tmp = library.IntDiv(self, other, k, kappa)
         res = type(self)()
         comparison.Trunc(res, tmp, 2 * k, k, kappa, True)
@@ -2963,6 +3024,7 @@ class sint(_secret, _int):
         gensecshuffle(res, n)
         return res
 
+    @read_mem_value
     def secure_permute(self, shuffle, unit_size=1, reverse=False):
         res = sint(size=self.size)
         applyshuffle(res, self, unit_size, shuffle, reverse)
@@ -3005,6 +3067,21 @@ class sint(_secret, _int):
     def copy_from_part(self, source, base, size):
         picks(self, source, base, 1)
 
+    def get_reverse_vector(self):
+        res = type(self)(size=self.size)
+        picks(res, self, self.size - 1, -1)
+        return res
+
+    def get_vector(self, base=0, size=None):
+        if size is None:
+            size = len(self) - base
+        if base == 0 and size == len(self):
+            return self
+        assert base + size <= len(self)
+        res = type(self)(size=size)
+        picks(res, self, base, 1)
+        return res
+
     @classmethod
     def concat(cls, parts):
         parts = list(parts)
@@ -3012,6 +3089,10 @@ class sint(_secret, _int):
         args = sum(([len(part), part] for part in parts), [])
         concats(res, *args)
         return res
+
+    @vectorize
+    def output(self):
+        print_reg_plains(self)
 
 class sintbit(sint):
     """ :py:class:`sint` holding a bit, supporting binary operations
@@ -3137,12 +3218,16 @@ class sgf2n(_secret, _gf2n):
         """ Store in memory by public address. """
         self._store_in_mem(address, gstms, gstmsi)
 
+    @vectorize_init
     def __init__(self, val=None, size=None):
         super(sgf2n, self).__init__('sg', val=val, size=size)
 
     def __neg__(self):
         """ Identity. """
         return self
+
+    __truediv__ = _secret.field_div
+    __rtruediv__ = _secret._rfield_div
 
     @vectorize
     def __invert__(self):
@@ -3674,6 +3759,7 @@ class sgf2nint(_bitint, sgf2n):
             raise CompilerError('Invalid signed %d-bit integer: %d' % \
                                     (self.n_bits, other))
 
+    @vectorize
     def load_other(self, other):
         if isinstance(other, sgf2nint):
             gmovs(self, self.compose(other.bit_decompose(self.n_bits)))
@@ -4189,6 +4275,9 @@ class cfix(_number, _structure):
         floatoutput(player, self.v, cint(-self.f), cint(0), cint(0))
         reset_global_vector_size()
 
+    def link(self, other):
+        self.v.link(other.v)
+
 class _single(_number, _secret_structure):
     """ Representation as single integer preserving the order """
     """ E.g. fixed-point numbers """
@@ -4236,6 +4325,15 @@ class _single(_number, _secret_structure):
         """
         cls.int_type.write_shares_to_socket(
             client_id, [x.v for x in values], message_type)
+
+    @vectorized_classmethod
+    def read_from_socket(cls, client_id, n=1):
+        return util.untuplify([cls._new(x) for x in util.tuplify(
+            cls.int_type.read_from_socket(client_id, n))])
+
+    @classmethod
+    def write_to_socket(cls, client_id, values):
+        cls.int_type.write_to_socket(client_id, [x.v for x in values])
 
     @vectorized_classmethod
     def load_mem(cls, address, mem_type=None):
@@ -4310,7 +4408,8 @@ class _single(_number, _secret_structure):
     @classmethod
     def read_from_file(cls, *args, **kwargs):
         """ Read shares from ``Persistence/Transactions-P<playerno>.data``.
-        Precision must be the same as when storing.
+        Precision must be the same as when storing. See :ref:`this
+        section <persistence>` for details on the data format.
 
         :param start: starting position in number of shares from beginning
             (int/regint/cint)
@@ -4325,7 +4424,8 @@ class _single(_number, _secret_structure):
     @classmethod
     def write_to_file(cls, shares, position=None):
         """ Write shares of integer representation to
-        ``Persistence/Transactions-P<playerno>.data``.
+        ``Persistence/Transactions-P<playerno>.data``. See :ref:`this
+        section <persistence>` for details on the data format.
 
         :param shares: (list or iterable of sfix)
         :param position: start position (int/regint/cint),
@@ -4625,7 +4725,8 @@ class _fix(_single):
                               nearest=self.round_nearest)
         elif isinstance(other, cfix):
             v = library.sint_cint_division(self.v, other.v, self.k, self.f,
-                                           self.kappa)
+                                           self.kappa,
+                                           nearest=self.round_nearest)
         else:
             raise TypeError('Incompatible fixed point types in division')
         return self._new(v, k=self.k, f=self.f)
@@ -4693,7 +4794,7 @@ class sfix(_fix):
     default_type = sint
 
     @vectorized_classmethod
-    def get_input_from(cls, player, binary=False):
+    def get_input_from(cls, player, binary=False, n_bytes=None):
         """ Secret fixed-point input.
 
         :param player: public (regint/cint/int)
@@ -4807,6 +4908,13 @@ class sfix(_fix):
     def multipliable(v, k, f, size):
         return cfix._new(cint.conv(v, size=size), k, f)
 
+    def dot(self, other):
+        """ Dot product with :py:class:`sint:`. """
+        if isinstance(other, sint):
+            return self._new(sint.dot_product(self.v, other), k=self.k, f=self.f)
+        else:
+            raise NotImplementedError()
+
     def reveal_to(self, player):
         """ Reveal secret value to :py:obj:`player`.
 
@@ -4829,6 +4937,12 @@ class sfix(_fix):
 
     def sum(self):
         return self._new(self.v.sum())
+
+    def get_reverse_vector(self):
+        return self._new(self.v.get_reverse_vector(), k=self.k, f=self.f)
+
+    def get_vector(self, *args, **kwargs):
+        return self._new(self.v.get_vector(*args, **kwargs), k=self.k, f=self.f)
 
     @classmethod
     def concat(cls, parts):
@@ -5523,6 +5637,11 @@ class sfloat(_number, _secret_structure):
         self.z.update(other.z)
         self.s.update(other.s)
 
+    def for_mux(self, other):
+        other = self.coerce(other)
+        f = lambda x: type(self)(*x)
+        return f, sint(list(self)), sint(list(other))
+
 class cfloat(Tape._no_truth):
     """ Helper class for printing revealed sfloats. """
     __slots__ = ['v', 'p', 'z', 's', 'nan']
@@ -5675,6 +5794,7 @@ class Array(_vectorizable):
     def address(self, address):
         self._address = address
 
+    @read_mem_value
     def get_address(self, index, size=None):
         if isinstance(index, (_secret, _single)):
             raise CompilerError('need cleartext index')
@@ -5799,6 +5919,9 @@ class Array(_vectorizable):
         tmp.store_in_mem(address)
 
     def __len__(self):
+        if self.length is None:
+            raise CompilerError('this functionality is not available '
+                                'for variable-length arrays')
         return self.length
 
     def total_size(self):
@@ -5923,6 +6046,19 @@ class Array(_vectorizable):
         addresses = self.get_slice_addresses(slice)
         vector.store_in_mem(addresses)
 
+    def permute(self, permutation, reverse=False, n_threads=None):
+        """ Public permutation.
+
+        :param permutation: cleartext :py:class`Array` containing number
+          in :math:`[0,n-1]` where :math:`n` is the length of this array
+        :param reverse: whether to apply the inverse of the permutation
+
+        """
+        if reverse:
+            self.assign_slice_vector(permutation, self.get_vector())
+        else:
+            self.assign_vector(self.get_slice_vector(permutation))
+
     def expand_to_vector(self, index, size):
         """ Create vector from single entry.
 
@@ -5966,25 +6102,62 @@ class Array(_vectorizable):
 
     def read_from_file(self, start):
         """ Read content from ``Persistence/Transactions-P<playerno>.data``.
-        Precision must be the same as when storing if applicable.
+        Precision must be the same as when storing if applicable. See
+        :ref:`this section <persistence>` for details on the data format.
 
         :param start: starting position in number of shares from beginning
             (int/regint/cint)
         :returns: destination for final position, -1 for eof reached,
              or -2 for file not found (regint)
         """
-        stop, shares = self.value_type.read_from_file(start, len(self))
-        self.assign(shares)
-        return stop
+        start = regint(start)
+        res = MemValue(0)
+        @library.multithread(None, len(self), max_size=program.budget)
+        def _(base, size):
+            stop, shares = self.value_type.read_from_file(start, size)
+            self.assign(shares, base=base)
+            start.iadd(size)
+            res.write(stop)
+        return res
 
     def write_to_file(self, position=None):
         """ Write shares of integer representation to
-        ``Persistence/Transactions-P<playerno>.data``.
+        ``Persistence/Transactions-P<playerno>.data``. See :ref:`this
+        section <persistence>` for details on the data format.
 
         :param position: start position (int/regint/cint),
             defaults to end of file
         """
-        self.value_type.write_to_file(list(self), position)
+        if position is not None:
+            position = regint(position)
+        @library.multithread(None, len(self), max_size=program.budget)
+        def _(base, size):
+            self.value_type.write_to_file(self.get_vector(base=base, size=size),
+                                          position)
+            if position is not None:
+                position.iadd(size)
+
+    def read_from_socket(self, socket, debug=False):
+        """ Read content from socket. """
+        if debug:
+            library.print_str('reading %s...' % self)
+        # hard-coded budget for interopability
+        @library.multithread(None, len(self), max_size=10 ** 6)
+        def _(base, size):
+            self.assign_vector(
+                self.value_type.read_from_socket(socket, size=size), base=base)
+        if debug:
+            library.print_ln('done')
+
+    def write_to_socket(self, socket, debug=False):
+        """ Write content to socket. """
+        if debug:
+            library.print_ln('writing %s' % self)
+        # hard-coded budget for interopability
+        @library.multithread(None, len(self), max_size=10 ** 6)
+        def _(base, size):
+            self.value_type.write_to_socket(
+                socket, [self.get_vector(base=base, size=size)])
 
     def __add__(self, other):
         """ Vector addition.
@@ -6183,6 +6356,7 @@ class SubMultiArray(_vectorizable):
         if debug:
             library.print_ln_if(self.address + reduce(operator.mul, self.sizes) * self.value_type.n_elements() > program.allocated_mem[self.value_type.reg_type], 'AOF%d:' % len(self.sizes) + self.debug)
 
+    @read_mem_value
     def __getitem__(self, index):
         """ Part access.
 
@@ -6285,13 +6459,17 @@ class SubMultiArray(_vectorizable):
         assert vector.size <= self.total_size()
         self.value_type.conv(vector).store_in_mem(self.address + base)
 
-    def assign(self, other):
+    def assign(self, other, base=0):
         """ Assign container to content. Not implemented for floating-point.
 
         :param other: container of matching size and type """
-        if self.value_type.n_elements() > 1:
-            assert self.sizes == other.sizes
-        self.assign_vector(other.get_vector())
+        try:
+            if self.value_type.n_elements() > 1:
+                assert self.sizes == other.sizes
+            self.assign_vector(other.get_vector())
+        except:
+            for i, x in enumerate(other):
+                self[base + i].assign(x)
 
     def get_part_vector(self, base=0, size=None):
         """ Vector from range of the first dimension, including all
@@ -6332,14 +6510,40 @@ class SubMultiArray(_vectorizable):
         addresses = self.get_slice_addresses(slice)
         vector.store_in_mem(self.address + addresses)
 
-    def get_slice_addresses(self, slice):
+    def get_part_size(self):
         assert self.value_type.n_elements() == 1
-        part_size = reduce(operator.mul, self.sizes[1:])
+        return reduce(operator.mul, self.sizes[1:])
+
+    def get_slice_addresses(self, slice, part_size=None):
+        part_size = part_size or self.get_part_size()
         assert len(slice) * part_size <= self.total_size()
         base = regint.inc(len(slice) * part_size, slice.address, 1, part_size)
         inc = regint.inc(len(slice) * part_size, 0, 1, 1, part_size)
         addresses = slice.value_type.load_mem(base) * part_size + inc
         return addresses
+
+    def permute(self, permutation, reverse=False, n_threads=None):
+        """ Public permutation along first dimension.
+
+        :param permutation: cleartext :py:class`Array` containing number
+          in :math:`[0,n-1]` where :math:`n` is the length of this array
+        :param reverse: whether to apply the inverse of the permutation
+
+        """
+        @library.multithread(n_threads, self.get_part_size())
+        def _(base, size):
+            addresses = self.get_slice_addresses(permutation, part_size=1)
+            addresses *= self.get_part_size()
+            @library.for_range_opt(size)
+            def _(j):
+                i = base + j
+                if reverse:
+                    v = self.get_column(i)
+                    v.store_in_mem(self.address + i + addresses)
+                else:
+                    v = self.value_type.load_mem(
+                        self.address + i + addresses)
+                    self.set_column(i, v)
 
     def get_addresses(self, *indices):
         assert self.value_type.n_elements() == 1
@@ -6424,7 +6628,8 @@ class SubMultiArray(_vectorizable):
 
     def write_to_file(self, position=None):
         """ Write shares of integer representation to
-        ``Persistence/Transactions-P<playerno>.data``.
+        ``Persistence/Transactions-P<playerno>.data``. See :ref:`this
+        section <persistence>` for details on the data format.
 
         :param position: start position (int/regint/cint),
             defaults to end of file
@@ -6439,7 +6644,8 @@ class SubMultiArray(_vectorizable):
 
     def read_from_file(self, start):
         """ Read content from ``Persistence/Transactions-P<playerno>.data``.
-        Precision must be the same as when storing if applicable.
+        Precision must be the same as when storing if applicable. See
+        :ref:`this section <persistence>` for details on the data format.
 
         :param start: starting position in number of shares from beginning
             (int/regint/cint)
@@ -6451,6 +6657,14 @@ class SubMultiArray(_vectorizable):
         def _(i):
             start.write(self[i].read_from_file(start))
         return start
+
+    def write_to_socket(self, socket, debug=False):
+        """ Write content to socket. """
+        self.array.write_to_socket(socket, debug=debug)
+
+    def read_from_socket(self, socket, debug=False):
+        """ Read content from socket. """
+        self.array.read_from_socket(socket, debug=debug)
 
     def schur(self, other):
         """ Element-wise product.
@@ -6793,7 +7007,28 @@ class SubMultiArray(_vectorizable):
         res = self.value_type.dot_product(a, b)
         return res
 
-    def transpose(self):
+    def get_column(self, index):
+        """ Get matrix column as vector.
+
+        :param index: regint/cint/int
+        """
+        assert self.value_type.n_elements() == 1
+        addresses = regint.inc(self.sizes[0], self.address + index,
+                               self.get_part_size())
+        return self.value_type.load_mem(addresses)
+
+    def set_column(self, index, vector):
+        """ Change column.
+
+        :param index: regint/cint/int
+        :param vector: short enought vector of compatible type
+        """
+        assert self.value_type.n_elements() == 1
+        addresses = regint.inc(self.sizes[0], self.address + index,
+                               self.get_part_size())
+        self.value_type.conv(vector).store_in_mem(addresses)
+
+    def transpose(self, n_threads=None):
         """ Matrix transpose.
 
         :param self: two-dimensional """
@@ -6801,13 +7036,24 @@ class SubMultiArray(_vectorizable):
         res = Matrix(self.sizes[1], self.sizes[0], self.value_type)
         library.break_point()
         if self.value_type.n_elements() == 1:
-            nr = self.sizes[1]
-            nc = self.sizes[0]
-            a = regint.inc(nr * nc, 0, nr, 1, nc)
-            b = regint.inc(nr * nc, 0, 1, nc)
-            res[:] = self.value_type.load_mem(self.address + a + b)
+            if self.sizes[0] < program.budget:
+                if self.sizes[1] < program.budget:
+                    nr = self.sizes[1]
+                    nc = self.sizes[0]
+                    a = regint.inc(nr * nc, 0, nr, 1, nc)
+                    b = regint.inc(nr * nc, 0, 1, nc)
+                    res[:] = self.value_type.load_mem(self.address + a + b)
+                else:
+                    @library.for_range_multithread(n_threads, 1, self.sizes[0])
+                    def _(i):
+                        res.set_column(i, self[i][:])
+            else:
+                @library.for_range_multithread(n_threads, 1, self.sizes[1])
+                def _(i):
+                    res[i][:] = self.get_column(i)
         else:
-            @library.for_range_opt(self.sizes[1], budget=100)
+            @library.for_range_opt_multithread(n_threads, self.sizes[1],
+                                               budget=100)
             def _(i):
                 @library.for_range_opt(self.sizes[0], budget=100)
                 def _(j):
@@ -6836,7 +7082,7 @@ class SubMultiArray(_vectorizable):
         """
         self.assign_vector(self.get_vector().secure_shuffle(self.part_size()))
 
-    def secure_permute(self, permutation, reverse=False):
+    def secure_permute(self, permutation, reverse=False, n_threads=None):
         """ Securely permute rows (first index). See
         :py:func:`secure_shuffle` for references.
 
@@ -6844,8 +7090,12 @@ class SubMultiArray(_vectorizable):
         :param reverse: whether to apply inverse (default: False)
 
         """
-        self.assign_vector(self.get_vector().secure_permute(
-            permutation, self.part_size(), reverse))
+        if n_threads is not None:
+            permutation = MemValue(permutation)
+        @library.for_range_multithread(n_threads, 1, self.get_part_size())
+        def _(i):
+            self.set_column(i, self.get_column(i).secure_permute(
+                permutation, reverse=reverse))
 
     def sort(self, key_indices=None, n_bits=None):
         """ Sort sub-arrays (different first index) in place.
@@ -6864,6 +7114,9 @@ class SubMultiArray(_vectorizable):
             return
         if key_indices is None:
             key_indices = (0,) * (len(self.sizes) - 1)
+        if len(key_indices) != len(self.sizes) - 1:
+            raise CompilerError('length of key_indices has to be one less '
+                                'than the dimension')
         key_indices = (None,) + util.tuplify(key_indices)
         from . import sorting
         keys = self.get_vector_by_indices(*key_indices)
@@ -7006,7 +7259,8 @@ class Matrix(MultiArray):
 
     @staticmethod
     def create_from(rows):
-        rows = list(rows)
+        if not isinstance(rows, _vectorizable):
+            rows = list(rows)
         if isinstance(rows[0], (list, tuple, Array)):
             t = type(rows[0][0])
         else:
@@ -7018,19 +7272,14 @@ class Matrix(MultiArray):
                         raise CompilerError(
                             'accidental shortening by creating matrix')
         res = Matrix(len(rows), len(rows[0]), t)
-        for i in range(len(rows)):
-            res[i].assign(rows[i])
+        if isinstance(rows, _vectorizable):
+            @library.for_range_opt(len(rows))
+            def _(i):
+                res[i].assign(rows[i])
+        else:
+            for i in range(len(rows)):
+                res[i].assign(rows[i])
         return res
-
-    def get_column(self, index):
-        """ Get column as vector.
-
-        :param index: regint/cint/int
-        """
-        assert self.value_type.n_elements() == 1
-        addresses = regint.inc(self.sizes[0], self.address + index,
-                               self.sizes[1])
-        return self.value_type.load_mem(addresses)
 
     def get_columns(self):
         return (self.get_column(i) for i in range(self.sizes[1]))
@@ -7040,17 +7289,6 @@ class Matrix(MultiArray):
         addresses = rows * self.sizes[1] + \
             regint.inc(len(rows), self.address + column, 0)
         return self.value_type.load_mem(addresses)
-
-    def set_column(self, index, vector):
-        """ Change column.
-
-        :param index: regint/cint/int
-        :param vector: short enought vector of compatible type
-        """
-        assert self.value_type.n_elements() == 1
-        addresses = regint.inc(self.sizes[0], self.address + index,
-                               self.sizes[1])
-        self.value_type.conv(vector).store_in_mem(addresses)
 
     def concat_columns(self, other):
         """ Concatenate two matrices by columns. """
@@ -7251,6 +7489,8 @@ class MemValue(_mem):
     if_else = lambda self,*args,**kwargs: self.read().if_else(*args, **kwargs)
     bit_and = lambda self,other: self.read().bit_and(other)
     bit_not = lambda self: self.read().bit_not()
+
+    print_if = lambda self,*args,**kwargs: self.read().print_if(*args, **kwargs)
 
     def expand_to_vector(self, size=None):
         if program.curr_block == self.last_write_block:

@@ -137,6 +137,12 @@ TripleShuffleSacrifice<T>::TripleShuffleSacrifice(int B, int C) :
 }
 
 template<class T>
+TripleShuffleSacrifice<T>::TripleShuffleSacrifice(DataFieldType type) :
+        ShuffleSacrifice(BaseMachine::bucket_size(type))
+{
+}
+
+template<class T>
 void TripleShuffleSacrifice<T>::triple_sacrifice(vector<array<T, 3>>& triples,
         vector<array<T, 3>>& check_triples, Player& P,
         typename T::MAC_Check& MC, ThreadQueues* queues)

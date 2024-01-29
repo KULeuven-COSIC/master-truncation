@@ -535,7 +535,8 @@ def abs_fx(x):
 #
 # @return floored sint value of x
 def floor_fx(x):
-    return load_sint(floatingpoint.Trunc(x.v, x.k, x.f, x.kappa), type(x))
+    return load_sint(x.v.right_shift(x.f, bit_length=x.k, security=x.kappa,
+                                     signed=True), type(x))
 
 
 ### sqrt methods
@@ -624,6 +625,15 @@ def norm_simplified_SQ(b, k):
 #
 # @return g: approximated sqrt
 def sqrt_simplified_fx(x):
+    # adapt parameters to fit the algorithm
+    f = x.f
+    k = x.k
+    my_f = max(f, k - f + 1)
+    shift = my_f - f
+    my_k = k + shift
+    assert my_k < 2 * my_f
+    x = type(x)._new(x.v << shift, f=my_f, k=my_k)
+
     # fix theta (number of iterations)
     theta = max(int(math.ceil(math.log(x.k))), 6)
 
@@ -670,7 +680,7 @@ def sqrt_simplified_fx(x):
     g = H * x
     g = g
 
-    return g
+    return type(x)._new((g * 2 ** -shift).v, f=f, k=k)
 
 
 ##

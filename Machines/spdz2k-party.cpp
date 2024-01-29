@@ -7,6 +7,7 @@
 #include "Processor/Machine.h"
 #include "Processor/RingOptions.h"
 #include "Protocols/Spdz2kShare.h"
+#include "Protocols/SPDZ2k.h"
 #include "Math/gf2n.h"
 #include "Networking/Server.h"
 
@@ -62,8 +63,10 @@ int main(int argc, const char** argv)
             cerr << "add Z(" << k << ", " << s << ") to " << __FILE__ << " at line "
                     << (__LINE__ - 11) << " and create Machines/SPDZ2^" << k << "+"
                     << s << ".cpp based on Machines/SPDZ2^72+64.cpp" << endl;
-            cerr << "Alternatively, compile with -DRING_SIZE=" << k
-                    << " and -DSPDZ2K_DEFAULT_SECURITY=" << s << endl;
+            cerr << "Alternatively, put 'MY_CFLAGS += -DRING_SIZE=" << k
+                    << " -DSPDZ2K_DEFAULT_SECURITY=" << s
+                    << "' in 'CONFIG.mine' before running 'make spdz2k-party.x'"
+                    << endl;
         }
         exit(1);
     }

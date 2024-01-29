@@ -272,14 +272,14 @@ PlayerBase::~PlayerBase()
 
 
 // Set up nmachines client and server sockets to send data back and fro
-//   A machine is a server between it and player i if i<=my_number
+//   A machine is a server between it and player i if i>=my_number
 //   Can also communicate with myself, but only with send_to and receive_from
 void PlainPlayer::setup_sockets(const vector<string>& names,
         const vector<int>& ports, const string& id_base, ServerSocket& server)
 {
     sockets.resize(nplayers);
     // Set up the client side
-    for (int i=player_no; i<nplayers; i++) {
+    for (int i=0; i<=player_no; i++) {
         auto pn=id_base+"P"+to_string(player_no);
         if (i==player_no) {
           const char* localhost = "127.0.0.1";
@@ -300,7 +300,7 @@ void PlainPlayer::setup_sockets(const vector<string>& names,
     }
     send_to_self_socket = sockets[player_no];
     // Setting up the server side
-    for (int i=0; i<=player_no; i++) {
+    for (int i=player_no; i<nplayers; i++) {
         auto id=id_base+"P"+to_string(i);
 #ifdef DEBUG_NETWORKING
         fprintf(stderr,

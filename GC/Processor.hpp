@@ -284,6 +284,13 @@ void Processor<T>::notcb(const ::BaseInstruction& instruction)
 }
 
 template<class T>
+void Processor<T>::movsb(const ::BaseInstruction& instruction)
+{
+    for (int i = 0; i < DIV_CEIL(instruction.get_n(), T::default_length); i++)
+        S[instruction.get_r(0) + i] = S[instruction.get_r(1) + i];
+}
+
+template<class T>
 void Processor<T>::andm(const ::BaseInstruction& instruction)
 {
     for (int i = 0; i < DIV_CEIL(instruction.get_n(), T::default_length); i++)
@@ -317,7 +324,6 @@ void Processor<T>::andrsvec(const vector<int>& args)
         int n_args = (*it++ - 3) / 2;
         int size = *it++;
         int base = *(it + n_args);
-        assert(n_args <= N_BITS);
         for (int i = 0; i < size; i += 1)
         {
             if (i % N_BITS == 0)

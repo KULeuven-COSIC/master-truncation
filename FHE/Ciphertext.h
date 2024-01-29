@@ -29,7 +29,6 @@ class Ciphertext
   word pk_id;
 
   public:
-  static int size() { return 0; }
 
   const FHE_Params& get_params() const { return *params; }
 

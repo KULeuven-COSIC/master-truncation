@@ -62,8 +62,9 @@ differences between the various protocols.
 #### Frequently Asked Questions
 
 [The documentation](https://mp-spdz.readthedocs.io/en/latest) contains
-sections on a number of frequently asked topics as well as information
-on how to solve common issues.
+section on a number of [frequently asked
+topics](https://mp-spdz.readthedocs.io/en/latest/troubleshooting.html)
+as well as information on how to solve common issues.
 
 #### TL;DR (Binary Distribution on Linux or Source Distribution on macOS)
 
@@ -390,7 +391,7 @@ There are three ways of running computation:
    all necessary input and certificate files via SSH.
 
    ```
-   Scripts/compile-run.py -HOSTS -E mascot <program> <argument> -- [<runtime-arg>...]
+   Scripts/compile-run.py -H HOSTS -E mascot <program> <argument> -- [<runtime-arg>...]
    ```
 
    `HOSTS` has to be a text file in the following format:
@@ -405,6 +406,8 @@ There are three ways of running computation:
    hostname), the path with be relative to the home directory of the
    user. Otherwise (`//` after the hostname it will be relative to the
    root directory.
+
+   It is assumed that the SSH login is possible without password.
 
 Even with the integrated execution it is important to keep in mind
 that there are two different phases, the compilation and the run-time
@@ -459,8 +462,8 @@ directly. For fixed-point computation this is done via
 
 The length is communicated to the virtual machines and automatically
 used if supported. By default, they support bit lengths 64, 72, and
-128. If another length is required, use `MOD = -DRING_SIZE=<bit
-length>` in `CONFIG.mine`.
+128 (the latter except for SPDZ2k). If another length is required, use
+`MOD = -DRING_SIZE=<bit length>` in `CONFIG.mine`.
 
 #### Binary circuits
 

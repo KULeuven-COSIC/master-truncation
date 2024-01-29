@@ -102,8 +102,6 @@ public:
 
   void mul(const bigint& x, const bigint& y) { *this = x * y; }
 
-  void add(octetStream& os, int = -1);
-
 #ifdef REALLOC_POLICE
   ~bigint() { lottery(); }
   void lottery();

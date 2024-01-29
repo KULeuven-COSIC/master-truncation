@@ -250,8 +250,11 @@ TreeSum<T>::~TreeSum()
 template<class T>
 void TreeSum<T>::run(vector<T>& values, const Player& P)
 {
-  start(values, P);
-  finish(values, P);
+  if (not values.empty())
+    {
+      start(values, P);
+      finish(values, P);
+    }
 }
 
 template<class T>
@@ -300,9 +303,11 @@ void TreeSum<T>::add_openings(vector<T>& values, const Player& P,
       P.wait_receive(sender, oss[j]);
       MC.player_timers[sender].stop();
       MC.timers[SUM].start();
+      T tmp = values.at(0);
       for (unsigned int i=0; i<values.size(); i++)
         {
-          values[i].add(oss[j], use_lengths ? lengths[i] : -1);
+          tmp.unpack(oss[j], use_lengths ? lengths[i] : -1);
+          values[i] += tmp;
         }
       post_add_process(values);
       MC.timers[SUM].stop();

@@ -72,6 +72,12 @@ ShamirOptions::ShamirOptions(ez::ezOptionParser& opt, int argc, const char** arg
     );
     opt.parse(argc, argv);
     opt.get("-N")->getInt(nparties);
+    if (nparties < 3)
+    {
+        cerr << "Protocols based on Shamir secret sharing require at least "
+                << "three parties." << endl;
+        exit(1);
+    }
     set_threshold(opt);
     opt.resetArgs();
 }
