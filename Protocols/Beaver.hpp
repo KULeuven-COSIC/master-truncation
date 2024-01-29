@@ -200,6 +200,7 @@ void Beaver<T>::trunc_pr(const vector<int>& regs, int size, U& proc)
                 {
                     auto& x = S[info.source_base + i];
                     auto& y = S[info.dest_base + i];
+                    // std::cout << x[0] << " " << x[1] << std::endl;
                     // y[0] = 0;
                     y[0] = this->shared_prngs[0].template get<value_type>();
                     y[1] = (x.sum() >> info.m) - y[0];
@@ -216,6 +217,7 @@ void Beaver<T>::trunc_pr(const vector<int>& regs, int size, U& proc)
                 {
                     auto& x = S[info.source_base + i];
                     auto& y = S[info.dest_base + i]; 
+                    // std::cout << x[0] << " " << x[1] << std::endl;
                     y[1] = -value_type(-value_type(x[1]) >> info.m);;
                     y[0] = cs.get<value_type>();
 
@@ -231,9 +233,9 @@ void Beaver<T>::trunc_pr(const vector<int>& regs, int size, U& proc)
                     gamma2.pack(rs);
                 }
 
-            P.exchange(check_player2, rs);
-            // P.send_to_no_stats(check_player2, rs);
-            // P.receive_player_no_stats(check_player2, rs);
+            // P.exchange(check_player2, rs);
+            P.send_to(check_player2, rs);
+            P.receive_player(check_player2, rs);
 
             // CHECK
             for (int i = 0; i < size; i++)
@@ -255,6 +257,7 @@ void Beaver<T>::trunc_pr(const vector<int>& regs, int size, U& proc)
                 {
                     auto& x = S[info.source_base + i];
                     auto& y = S[info.dest_base + i];
+                    // std::cout << x[0] << " " << x[1] << std::endl;
                     auto r_prime = this->shared_prngs[1].template get<value_type>();
                     // auto r_prime = 0;
                     y[0] = -value_type(-value_type(x[0]) >> info.m);
@@ -272,9 +275,9 @@ void Beaver<T>::trunc_pr(const vector<int>& regs, int size, U& proc)
                     gamma1.pack(rs);
                 }
 
-            P.exchange(check_player1, rs);
-            // P.send_to_no_stats(check_player1, rs);
-            // P.receive_player_no_stats(check_player1, rs);
+            // P.exchange(check_player1, rs);
+            P.send_to(check_player1, rs);
+            P.receive_player(check_player1, rs);
 
             // CHECK
             for (int i = 0; i < size; i++)
@@ -369,7 +372,8 @@ void Beaver<T>::trunc_pr(const vector<int>& regs, int size, U& proc)
         using Z2 = typename T::T;
         
         octetStream cs;
-        std::vector<Z2> masked_s_all;
+        std::vector<Z2> masked_s0_all;
+        std::vector<Z2> masked_s1_all;
         value_type r_prime = 0;
         value_type r = 0;
 
@@ -377,21 +381,23 @@ void Beaver<T>::trunc_pr(const vector<int>& regs, int size, U& proc)
             for (int i = 0; i < size; i++)
             {
                 auto& x = S[info.source_base + i];
-                value_type masked_s = x[0] - r_prime;
-                masked_s_all.push_back(masked_s);
-                masked_s.pack(cs);
+                value_type masked_s0 = x[0] - r_prime;
+                value_type masked_s1 = x[1] - r_prime;
+                masked_s0_all.push_back(masked_s0);
+                masked_s1_all.push_back(masked_s1);
+                masked_s0.pack(cs);
             }
 
         P.send_relative(-1, cs);
-        P.send_relative(1, cs);
-        octetStream os;
+        // P.send_relative(1, cs);
+        // octetStream os;
         P.receive_relative(1, cs);
-        P.receive_relative(-1, os);
+        // P.receive_relative(-1, os);
 
         for (auto info : infos)
             for (int i = 0; i < size; i++)
             {
-                Z2 masked_x = (masked_s_all[i] + cs.get<value_type>() + os.get<value_type>()) >> info.m;
+                Z2 masked_x = (masked_s0_all[i] + cs.get<value_type>() + masked_s1_all[i]) >> info.m;
                 auto& y = S[info.dest_base + i];
                 
                 if (P.my_num() == 0)
@@ -410,13 +416,13 @@ void Beaver<T>::trunc_pr(const vector<int>& regs, int size, U& proc)
                     y[1] = r;  
                 }    
             }
-        std::vector<Z2> swift (size);
-        std::fill(swift.begin(), swift.end(), Z2(-1));
-        cs.store(swift);
-        P.send_relative(-1, cs);
-        P.send_relative(1, cs);
-        P.receive_relative(1, cs);
-        P.receive_relative(-1, os);
+        // std::vector<Z2> swift (size);
+        // std::fill(swift.begin(), swift.end(), Z2(-1));
+        // cs.store(swift);
+        // P.send_relative(-1, cs);
+        // P.send_relative(1, cs);
+        // P.receive_relative(1, cs);
+        // P.receive_relative(-1, os);
     }
     else if (have_small_gap) {
         int gen_player = 2;

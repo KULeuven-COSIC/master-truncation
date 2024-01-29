@@ -2,8 +2,6 @@ program.use_trunc_pr = True
 # program.use_edabit(True)
 # program.use_split(3)
 
-print_ln('----------------------------------')
-
 import numpy as np
 
 sfix.set_precision(8,16)
@@ -78,19 +76,34 @@ b4_dim1 = sint.get_input_from(1)
 biases4.input_from(1)
 
 
-true_vals = sfix.Tensor([21892, 5])
-t0_dim0 = sint.get_input_from(1)
-t0_dim1 = sint.get_input_from(1)
-true_vals.input_from(1)
+# true_vals = sfix.Tensor([21892, 5])
+# t0_dim0 = sint.get_input_from(1)
+# t0_dim1 = sint.get_input_from(1)
+# true_vals.input_from(1)
 
 """
-Load input (query samples) from P2
+Load input (query samples) from client
 """
-input_data = sfix.Tensor([21892, 187])
+# input_data = sfix.Tensor([1, 187])
 
-i0_dim0 = sint.get_input_from(2)
-i0_dim1 = sint.get_input_from(2)
-input_data.input_from(2)
+# i0_dim0 = sint.get_input_from(2)
+# i0_dim1 = sint.get_input_from(2)
+# input_data.input_from(2)
+
+# demo_input0 = sfix.Tensor([1, 187])
+# demo_input1 = sfix.Tensor([1, 187])
+# demo_input2 = sfix.Tensor([1, 187])
+# demo_input0.input_from(0)
+# demo_input1.input_from(1)
+# demo_input2.input_from(2)
+# demo_input = demo_input0 + demo_input1 + demo_input2
+
+demo_input_test = sfix.Tensor([1, 187])
+# demo_input_test.read_from_file(0, 187)[1]
+start = 0
+for element in demo_input_test:
+    start = element.read_from_file(start)
+
 
 
 from Compiler import ml
@@ -106,7 +119,7 @@ layers = [
 
 model = tf.keras.models.Sequential(layers)
 
-model.build(input_data.sizes, 21892)
+model.build(demo_input_test.sizes, 1)
 
 #Update the weights and biases of each layer
 model.opt.layers[0].W = weights0
@@ -120,7 +133,13 @@ model.opt.layers[2].b = biases2
 model.opt.layers[3].b = biases3
 model.opt.layers[4].b = biases4
 
-guesses = model.predict(input_data)
+guesses = model.predict(demo_input_test)
+
+sfix.write_to_file(guesses[0])
+
+# @for_range(len(guesses))
+# def _(i):
+#     sfix.write_to_file(guesses[i])
 
 
 

@@ -1,0 +1,32 @@
+Using security parameter 40
+Trying to run 64-bit computation
+Using SGD
+Starting timer 1 at 0 (0 MB, 0 rounds) after 5.5281e-05
+done with epoch 0
+Elapsed time: 1285.22
+Stopped timer 1 at 1268.4 (96675.1 MB, 1101411 rounds)
+Compiler: ./compile.py -R 64 master_benchmark lenet torchmnist
+	9999 triples of malicious replicated Z2^64 left
+Significant amount of unused triples of malicious replicated Z2^64 distorting the benchmark. For more accurate benchmarks, consider reducing the batch size with --batch-size.
+	1308 triples of malicious replicated Z2^64 left
+	3064 bits of malicious replicated Z2^64 left
+2 threads spent a total of 284.758 seconds (28567.9 MB, 280050 rounds) on the online phase, 1000.48 seconds (68725.6 MB, 881277 rounds) on the preprocessing/offline phase, and 1285.3 seconds idling.
+Communication details (rounds in parallel threads counted double):
+Broadcasting 14.3096 MB in 529680 rounds, taking 130.518 seconds
+Passing around 96805 MB in 373535 rounds, taking 238.506 seconds
+Receiving directly 117.378 MB in 102240 rounds, taking 11.7035 seconds
+Sending directly 459.984 MB in 155872 rounds, taking 6.94671 seconds
+CPU time = 1329.99 (overall core time)
+The following benchmarks are including preprocessing (offline phase).
+Time = 1285.82 seconds 
+Time1 = 1268.4 seconds (96675.1 MB, 1101411 rounds)
+Data sent = 97293.6 MB in ~1161327 rounds (party 0 only)
+Global data sent = 291247 MB (all parties)
+Actual cost of program:
+  Type int
+    1756718693        Triples
+       3616936           Bits
+This program might benefit from some protocol options.
+Consider adding the following at the beginning of your code:
+	program.use_edabit(True)
+Command line: ./malicious-rep-ring-party.x -v -p 0 -ip HOSTS master_benchmark-lenet-torchmnist

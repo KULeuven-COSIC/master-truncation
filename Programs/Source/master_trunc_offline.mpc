@@ -1,0 +1,20 @@
+from Compiler.instructions import trunc_pr
+
+import math
+
+program.use_trunc_pr = True
+program.use_edabit(True)
+sfix.set_precision(16,32) # Martin: can you set the precision to comparable parameters as in aby3 offline phase?
+
+N_PAIRS = 10**3
+
+SIMD = 1000
+ITERS = int(math.ceil(N_PAIRS/float(SIMD)))
+n_threads = 4
+
+@for_range_multithread(n_threads, 1, ITERS)
+def _(i):
+    random_sint = sint.get_random(size=SIMD)
+    random = sfix._new(random_sint, k=sfix.k, f=sfix.f)
+    random_trunc = sfix._new(sfix.int_type(),k=random.k, f=random.f)
+    trunc_pr(random_trunc.v, random.v, SIMD, random.f)

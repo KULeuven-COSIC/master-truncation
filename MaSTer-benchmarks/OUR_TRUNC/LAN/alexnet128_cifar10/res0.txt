@@ -1,0 +1,33 @@
+Using security parameter 40
+Trying to run 64-bit computation
+Using SGD
+Starting timer 1 at 0 (0 MB, 0 rounds) after 3.8816e-05
+done with epoch 0
+Elapsed time: 13014.2
+Stopped timer 1 at 12979.9 (821878 MB, 13923061 rounds)
+Compiler: ./compile.py -R 64 master_benchmark alexnet torchcifar
+	9999 triples of malicious replicated Z2^64 left
+Significant amount of unused triples of malicious replicated Z2^64 distorting the benchmark. For more accurate benchmarks, consider reducing the batch size with --batch-size.
+	9436 triples of malicious replicated Z2^64 left
+	5120 bits of malicious replicated Z2^64 left
+2 threads spent a total of 2906 seconds (231872 MB, 6446632 rounds) on the online phase, 10108.1 seconds (591672 MB, 7670108 rounds) on the preprocessing/offline phase, and 13014.2 seconds idling.
+Communication details (rounds in parallel threads counted double):
+Broadcasting 161.15 MB in 5736267 rounds, taking 1216.36 seconds
+Passing around 821742 MB in 8138395 rounds, taking 2613.55 seconds
+Receiving directly 432.002 MB in 30786 rounds, taking 28.7605 seconds
+Sending directly 1479.97 MB in 211292 rounds, taking 11.3872 seconds
+CPU time = 13215.9 (overall core time)
+The following benchmarks are including preprocessing (offline phase).
+Time = 13014.4 seconds 
+Time1 = 12979.9 seconds (821878 MB, 13923061 rounds)
+Data sent = 823544 MB in ~14116740 rounds (party 0 only)
+Global data sent = 2.46875e+06 MB (all parties)
+Actual cost of program:
+  Type int
+    14380580565        Triples
+     599634880           Bits
+This program might benefit from some protocol options.
+Consider adding the following at the beginning of your code:
+	program.use_edabit(True)
+Command line: ./malicious-rep-ring-party.x -v -p 0 -ip HOSTS master_benchmark-alexnet-torchcifar
+

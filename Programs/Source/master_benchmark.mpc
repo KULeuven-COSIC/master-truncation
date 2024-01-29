@@ -10,24 +10,50 @@ MNIST: Run Data_prep.py in ML-Data/mnist/
 Cifar-10: Run Data_prep.py in ML-Data/cifar10/
 """
 
-if program.args[1] == 'secureml' or program.args[1] == 'lenet':
-    training_samples = sfix.Tensor([128, 28, 28])
-    training_labels = sfix.Tensor([128, 10])
+if 'torchmnist' in program.args:
+    import torchvision
+    data = []
+    for train in True, False:
+        ds = torchvision.datasets.MNIST(root='/tmp', train=train, download=True)
+	    # normalize to [0,1] before input
+        samples = sfix.input_tensor_via(0, ds.data / 255., binary=True)
+        labels = sint.input_tensor_via(0, ds.targets, binary=True, one_hot=True)
+        data += [(labels, samples)]
+
+    (training_labels, training_samples), (test_labels, test_samples) = data
+    # training_labels = training_labels.get_part(0,128)
+    # training_samples = training_samples.get_part(0,128)
+elif 'torchcifar' in program.args:
+    import torchvision, numpy
+    data = []
+    for train in True, False:
+        ds = torchvision.datasets.CIFAR10(root='/tmp', train=train, download=True)
+        # normalize to [-1,1] before input
+        samples = sfix.input_tensor_via(0, ds.data / 255 * 2 - 1, binary=True)
+        labels = sint.input_tensor_via(0, ds.targets, binary=True, one_hot=True)
+        data += [(labels, samples)]
+
+    (training_labels, training_samples), (test_labels, test_samples) = data
+    training_labels = training_labels.get_part(0,128)
+    training_samples = training_samples.get_part(0,128)
+elif program.args[1] == 'mnist':
+    training_samples = sfix.Tensor([60000, 28, 28])
+    training_labels = sfix.Tensor([60000, 10])
 
     test_samples = sfix.Tensor([10000, 28, 28])
     test_labels = sfix.Tensor([10000, 10])
-elif program.args[1] == 'alexnet':
+elif program.args[1] == 'cifar':
     training_samples = sfix.Tensor([128, 32, 32, 3])
     training_labels = sfix.Tensor([128, 10])
 
     test_samples = sfix.Tensor([10000, 32, 32, 3])
     test_labels = sfix.Tensor([10000, 10])
 
-training_samples.input_from(0)
-training_labels.input_from(1)
+# training_samples.input_from(0)
+# training_labels.input_from(1)
 
-test_samples.input_from(2)
-test_labels.input_from(2)
+# test_samples.input_from(2)
+# test_labels.input_from(2)
 
 
 from Compiler import ml
@@ -110,7 +136,7 @@ opt = model.fit(
     training_labels,
     epochs=1,
     batch_size=128,
-    # validation_data=(test_samples, test_labels)
+    validation_data=(test_samples, test_labels)
 )
 
 # model.build(training_samples.sizes)
