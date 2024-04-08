@@ -33,6 +33,10 @@ protected:
     Preprocessing<T>* prep;
     typename T::MAC_Check* MC;
 
+    #ifdef OUR_TRUNC
+    vector<T> trunc_pr_batch_to_check;
+    #endif
+
 public:
 
     Player& P;
@@ -77,6 +81,7 @@ public:
 
     template<class U>
     void trunc_pr(const vector<int>& regs, int size, U& proc);
+    void trunc_pr_batch_verification();
 };
 
 #endif /* PROTOCOLS_BEAVER_H_ */

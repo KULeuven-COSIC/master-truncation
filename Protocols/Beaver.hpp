@@ -12,6 +12,10 @@
 
 #include <array>
 
+#ifndef TRUNC_VFY_BATCH_SIZE
+#define TRUNC_VFY_BATCH_SIZE 100
+#endif
+
 template<class T>
 inline Beaver<T>::Beaver(Player& P) : prep(0), MC(0), P(P)
 {
@@ -30,6 +34,7 @@ inline Beaver<T>::Beaver(Player& P) : prep(0), MC(0), P(P)
     shared_prngs[0].SeedPairwise(P, 0); // 1
     shared_prngs[1].SeedPairwise(P, 1); // 3
   }
+  trunc_pr_batch_to_check.reserve(TRUNC_VFY_BATCH_SIZE);
   #else
 	shared_prngs[0].ReSeed();
 	octetStream os;
@@ -38,6 +43,7 @@ inline Beaver<T>::Beaver(Player& P) : prep(0), MC(0), P(P)
 	P.receive_relative(-1, os);
 	shared_prngs[1].SetSeed(os.get_data());
   #endif
+  
 }
 
 #ifdef OUR_TRUNC
@@ -51,6 +57,9 @@ inline Beaver<T>::Beaver(Player& P, array<PRNG, 2>& prngs) :
 {
     for (int i = 0; i < 2; i++)
         shared_prngs[i].SetSeed(prngs[i]);
+    #ifdef OUR_TRUNC
+    trunc_pr_batch_to_check.reserve(TRUNC_VFY_BATCH_SIZE);
+    #endif
 }
 
 template<class T>
@@ -152,6 +161,43 @@ void Beaver<T>::randoms(T& res, int n_bits)
         res[i].randomize_part(shared_prngs[i], n_bits);
 }
 
+constexpr int comp_player = 1;
+constexpr int check_player1 = 0;
+constexpr int check_player2 = 2;
+
+template<class T>
+void Beaver<T>::trunc_pr_batch_verification()
+{
+    bool checker1 = P.my_num() == check_player1;
+    bool checker2 = P.my_num() == check_player2;
+    using Z2 = typename T::T;
+    if ((checker1 or checker2) and this->trunc_pr_batch_to_check.size() > 0)
+    {
+        std::cout << "Running batch verification on " << this->trunc_pr_batch_to_check.size() << " elements" << std::endl;
+        int other_player = checker1 ? check_player2 : check_player1;
+        octetStream rs;
+        for(auto share : this->trunc_pr_batch_to_check) {
+            share[0].pack(rs);
+        }
+        P.send_to(other_player, rs);
+        P.receive_player(other_player, rs);
+
+        // CHECK
+        for (auto share : this->trunc_pr_batch_to_check)
+        {
+            Z2 res = rs.get<Z2>();
+            Z2 check = share[1] + res;
+            if (check != Z2(0) and check != Z2(1) and check != Z2(-1))
+            {
+                std::cout << "Abort needed, gamma value: " << check << std::endl;
+                throw std::runtime_error(std::string("Failed gamma check"));    //abort
+            }
+        }
+        // all ok, remove stored values
+        this->trunc_pr_batch_to_check.clear();
+    }
+}
+
 template<class T>
 template<class U>
 void Beaver<T>::trunc_pr(const vector<int>& regs, int size, U& proc)
@@ -180,9 +226,9 @@ void Beaver<T>::trunc_pr(const vector<int>& regs, int size, U& proc)
     if (have_big_gap){
         // std::cout << "here big" << std::endl;
         using Z2 = typename T::T;
-        int comp_player = 1;
-        int check_player1 = 0;
-        int check_player2 = 2;
+        // int comp_player = 1;
+        // int check_player1 = 0;
+        // int check_player2 = 2;
         bool compute = P.my_num() == comp_player;
         bool checker1 = P.my_num() == check_player1;
         bool checker2 = P.my_num() == check_player2;
@@ -227,12 +273,22 @@ void Beaver<T>::trunc_pr(const vector<int>& regs, int size, U& proc)
                     // auto r_pp = 0;
                     Z2 s3 = r_pp;
                     Z2 gamma2 = y[0] - s2;
-                    Gammas2.push_back(gamma2);
                     Z2 gamma3 = y[1] - s3;
+                    #ifdef BATCH_VFY
+                    if (this->trunc_pr_batch_to_check.size() >= TRUNC_VFY_BATCH_SIZE) {
+                        this->trunc_pr_batch_verification();
+                    }
+                    T share;
+                    share[0] = gamma2;
+                    share[1] = gamma2+gamma3;
+                    this->trunc_pr_batch_to_check.push_back(share);
+                    #else
+                    Gammas2.push_back(gamma2);
                     Gammas3.push_back(gamma3);
                     gamma2.pack(rs);
+                    #endif
                 }
-
+            #ifndef BATCH_VFY
             // P.exchange(check_player2, rs);
             P.send_to(check_player2, rs);
             P.receive_player(check_player2, rs);
@@ -248,6 +304,7 @@ void Beaver<T>::trunc_pr(const vector<int>& regs, int size, U& proc)
                     throw std::runtime_error(std::string("Failed gamma check"));    //abort
                 }
             }
+            #endif
         }
 
         else if (checker2) 
@@ -269,12 +326,22 @@ void Beaver<T>::trunc_pr(const vector<int>& regs, int size, U& proc)
                     Z2 s1 = (x.sum() >> info.m) - r_pp;
                     Z2 s3 = r_pp;
                     Z2 gamma1 = y[1] - s1;
-                    Gammas1.push_back(gamma1);
                     Z2 gamma3 = y[0] - s3; 
+                    #ifdef BATCH_VFY
+                    if (this->trunc_pr_batch_to_check.size() >= TRUNC_VFY_BATCH_SIZE) {
+                        this->trunc_pr_batch_verification();
+                    }
+                    T share;
+                    share[0] = gamma1;
+                    share[1] = gamma1+gamma3;
+                    this->trunc_pr_batch_to_check.push_back(share);
+                    #else
+                    Gammas1.push_back(gamma1);
                     Gammas3.push_back(gamma3);
                     gamma1.pack(rs);
+                    #endif
                 }
-
+            #ifndef BATCH_VFY
             // P.exchange(check_player1, rs);
             P.send_to(check_player1, rs);
             P.receive_player(check_player1, rs);
@@ -290,6 +357,7 @@ void Beaver<T>::trunc_pr(const vector<int>& regs, int size, U& proc)
                     throw std::runtime_error(std::string("Failed gamma check"));    //abort
                 }
             }
+            #endif
         }
     }
     else if (have_small_gap) {
