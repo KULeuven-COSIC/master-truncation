@@ -12,9 +12,9 @@
 
 #include <array>
 
-// #ifndef TRUNC_VFY_BATCH_SIZE
-// #define TRUNC_VFY_BATCH_SIZE 100
-// #endif
+#ifndef TRUNC_VFY_BATCH_SIZE
+#define TRUNC_VFY_BATCH_SIZE 500000
+#endif
 
 template<class T>
 inline Beaver<T>::Beaver(Player& P) : prep(0), MC(0), P(P)
@@ -174,6 +174,20 @@ namespace detail {
 
     template<int K, int S>
     struct is_mal_rep_ring_share<MalRepRingShare<K,S>> : std::true_type {};
+
+    
+}
+
+template<class T>
+constexpr auto get_corr_value() {
+    using Z2 = typename T::T;
+    if constexpr (T::BIT_LENGTH == 64) {
+        return Z2(1) << 51;
+    }else if constexpr(T::BIT_LENGTH == 96) {
+        return Z2(1) << 83;
+    }else{
+        return Z2(0);
+    };
 }
 
 template<class T>
@@ -186,21 +200,22 @@ void Beaver<T>::trunc_pr_batch_verification()
         using Z2 = typename T::T;
         if ((checker1 or checker2) and this->trunc_pr_batch_to_check.size() > 0)
         {
+            Z2 cor_value = get_corr_value<T>();
             std::cout << "Running batch verification on " << this->trunc_pr_batch_to_check.size() << " elements" << std::endl;
             int other_player = checker1 ? check_player2 : check_player1;
             octetStream rs;
+            octetStream cs;
             for(auto share : this->trunc_pr_batch_to_check) {
                 share[0].pack(rs);
             }
-            P.send_to(other_player, rs);
-            P.receive_player(other_player, rs);
+            P.exchange(other_player, rs, cs);
 
             // CHECK
             for (auto share : this->trunc_pr_batch_to_check)
             {
-                Z2 res = rs.get<Z2>();
+                Z2 res = cs.get<Z2>();
                 Z2 check = share[1] + res;
-                if (check != Z2(0) and check != Z2(1) and check != Z2(-1))
+                if (check != Z2(0) and check != Z2(1) and check != Z2(-1) and check != cor_value)  // cor_value check is for training - where trunc is used for other operations
                 {
                     std::cout << "Abort needed, gamma value: " << check << std::endl;
                     throw std::runtime_error(std::string("Failed gamma check"));    //abort
@@ -249,6 +264,10 @@ void Beaver<T>::trunc_pr(const vector<int>& regs, int size, U& proc)
 
         std::vector<Z2> Gammas1, Gammas2, Gammas3;
 
+        #ifndef BATCH_VFY
+        Z2 cor_value = get_corr_value<T>();
+        #endif
+
         octetStream cs;
         octetStream rs;
     
@@ -283,15 +302,15 @@ void Beaver<T>::trunc_pr(const vector<int>& regs, int size, U& proc)
 
                     // CHECK PREP
                     Z2 s2 = -value_type(-value_type(x[0]) >> info.m);
-                    auto r_pp = this->shared_prngs[1].template get<value_type>();
+                    Z2 r_pp = this->shared_prngs[1].template get<value_type>();
                     // auto r_pp = 0;
                     Z2 s3 = r_pp;
                     Z2 gamma2 = y[0] - s2;
                     Z2 gamma3 = y[1] - s3;
                     #ifdef BATCH_VFY
-                    // if (this->trunc_pr_batch_to_check.size() >= TRUNC_VFY_BATCH_SIZE) {
-                    //     this->trunc_pr_batch_verification();
-                    // }
+                    if (this->trunc_pr_batch_to_check.size() >= TRUNC_VFY_BATCH_SIZE) {
+                        this->trunc_pr_batch_verification();
+                    }
                     T share;
                     share[0] = gamma2;
                     share[1] = gamma2+gamma3;
@@ -303,17 +322,17 @@ void Beaver<T>::trunc_pr(const vector<int>& regs, int size, U& proc)
                     #endif
                 }
             #ifndef BATCH_VFY
-            // P.exchange(check_player2, rs);
-            P.send_to(check_player2, rs);
-            P.receive_player(check_player2, rs);
+
+            P.exchange(check_player2, rs, cs);
 
             // CHECK
             for (int i = 0; i < size; i++)
             {
-                Z2 gamma1 = rs.get<Z2>();
+                Z2 gamma1 = cs.get<Z2>();
                 Z2 check = gamma1 + Gammas2[i] + Gammas3[i];
-                if (check != Z2(0) and check != Z2(1) and check != Z2(-1))
+                if (check != Z2(0) and check != Z2(1) and check != Z2(-1) and check != cor_value)  // cor_value check is for training - where trunc is used for other operations
                 {
+                    // std::cout << int(T::BIT_LENGTH) << " " << k << std::endl;
                     std::cout << "Abort needed, gamma value: " << check << std::endl;
                     throw std::runtime_error(std::string("Failed gamma check"));    //abort
                 }
@@ -342,9 +361,9 @@ void Beaver<T>::trunc_pr(const vector<int>& regs, int size, U& proc)
                     Z2 gamma1 = y[1] - s1;
                     Z2 gamma3 = y[0] - s3; 
                     #ifdef BATCH_VFY
-                    // if (this->trunc_pr_batch_to_check.size() >= TRUNC_VFY_BATCH_SIZE) {
-                    //     this->trunc_pr_batch_verification();
-                    // }
+                    if (this->trunc_pr_batch_to_check.size() >= TRUNC_VFY_BATCH_SIZE) {
+                        this->trunc_pr_batch_verification();
+                    }
                     T share;
                     share[0] = gamma1;
                     share[1] = gamma1+gamma3;
@@ -356,16 +375,15 @@ void Beaver<T>::trunc_pr(const vector<int>& regs, int size, U& proc)
                     #endif
                 }
             #ifndef BATCH_VFY
-            // P.exchange(check_player1, rs);
-            P.send_to(check_player1, rs);
-            P.receive_player(check_player1, rs);
+
+            P.exchange(check_player1, rs, cs);
 
             // CHECK
             for (int i = 0; i < size; i++)
             {
-                Z2 gamma2 = rs.get<Z2>(); 
-                Z2 check = Gammas1[i] + gamma2 + Gammas3[i];
-                if (check != Z2(0) and check != Z2(1) and check != Z2(-1))
+                Z2 gamma2 = cs.get<Z2>(); 
+                Z2 check = Gammas1[i] + gamma2 + Gammas3[i];   
+                if (check != Z2(0) and check != Z2(1) and check != Z2(-1) and check != cor_value)  // cor_value check is for training - where trunc is used for other operations
                 {
                     std::cout << "Abort needed, gamma value: " << check << std::endl;
                     throw std::runtime_error(std::string("Failed gamma check"));    //abort
@@ -663,6 +681,7 @@ void Beaver<T>::trunc_pr(const vector<int>& regs, int size, U& proc)
             {
                 if (info.small_gap())
                 {
+                    std::cout << "my guess is its coming here" << std::endl;
                     this->trunc_pr_counter++;
                     auto c_prime = input.finalize(comp_player);
                     auto r_prime = input.finalize(gen_player);
