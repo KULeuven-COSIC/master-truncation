@@ -3,7 +3,7 @@ program.use_trunc_pr = True
 # program.use_edabit(True)
 program.options_from_args()
     
-sfix.set_precision(8,20)
+sfix.set_precision(7,17)
 
 """
 MNIST: Run Data_prep.py in ML-Data/mnist/
@@ -21,8 +21,8 @@ if 'torchmnist' in program.args:
         data += [(labels, samples)]
 
     (training_labels, training_samples), (test_labels, test_samples) = data
-    # training_labels = training_labels.get_part(0,128)
-    # training_samples = training_samples.get_part(0,128)
+    training_labels = training_labels.get_part(0,128)
+    training_samples = training_samples.get_part(0,128)
 elif 'torchcifar' in program.args:
     import torchvision, numpy
     data = []
@@ -135,8 +135,8 @@ opt = model.fit(
     training_samples,
     training_labels,
     epochs=1,
-    batch_size=128,
-    validation_data=(test_samples, test_labels)
+    batch_size=16,
+    # validation_data=(test_samples, test_labels)
 )
 
 # model.build(training_samples.sizes)
