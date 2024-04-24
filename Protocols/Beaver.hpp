@@ -186,7 +186,7 @@ template<class T>
 constexpr auto get_corr_value(int choice) {
     using Z2 = typename T::T;
     int k = 7;
-    if (choice == 1) {k = 7;} else {k=17;} 
+    if (choice == 1) {k = 7;} else {k=23;} 
     if constexpr (T::BIT_LENGTH == 64) {
         return Z2(1) << (64 - k);
     }else if constexpr(T::BIT_LENGTH == 96) {

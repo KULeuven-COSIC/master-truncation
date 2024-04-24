@@ -9,19 +9,19 @@ First, get data prepared by running Data_prep.py in: (you may need to install nu
 
 Then, setup: `Scripts/setup-ssl.sh 3`
 
-In CONFIG.mine set the flag `MY_CFLAGS += -DOUR_TRUNC` for MaSTer truncation, `MY_CFLAGS += -DABY3_MAL_TRUNC` for online phase of ABY3 (https://eprint.iacr.org/2018/403.pdf) truncation.
+In CONFIG.mine set the flag `MY_CFLAGS += -DOUR_TRUNC -DBATCH_VFY -DRING_SIZE=96` for MaSTer truncation, `MY_CFLAGS += -DABY3_MAL_TRUNC` for online phase of ABY3 (https://eprint.iacr.org/2018/403.pdf) truncation.
 
 To run training:
 ```
 make malicious-rep-ring-party.x
-./compile.py -R 64 master_benchmark "network" "dataset"
+./compile.py -R "L" master_benchmark "network" "dataset"
 Scripts/mal-rep-ring.sh master_benchmark-"network"-"dataset" 
 ```
-Here "network" can be either "secureml", "lenet" or "alexnet" and "dataset" is "torchmnist" for MNIST and "torchcifar" for CIFAR-10
+Here "L" is the ring size (64 for ABY3, 96 for MaSTer), "network" can be either "secureml", "lenet" or "alexnet" and "dataset" is "torchmnist" for MNIST and "torchcifar" for CIFAR-10
 
 To run inference on heartbeat data:
 ```
-./compile.py -R 64 MITBIH_inference
+./compile.py -R "L" MITBIH_inference
 Scripts/mal-rep-ring.sh MITBIH_inference
 ```
 
