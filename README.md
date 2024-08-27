@@ -1,4 +1,5 @@
 # MaSTer benchmark
+All modifications and contributions to this repository are licensed under the same terms as the original code, as specified in the License.txt file.
 
 To run the benchmarks reported in paper: MaSTer: Maliciously Secure Truncation for Replicated Secret Sharing without pre-processing, follow these steps:
 
